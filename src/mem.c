@@ -53,9 +53,13 @@ void* xrealloc(void* ptr, size_t size)
 		die("bug: tried to allocate 0 bytes\n");
 	}
 	m = realloc(ptr, size);
-	if (!m) {
+	if (!m && size) {
 		errno = ENOMEM;
 		die("realloc(): %s\n", strerror(errno));
+	}
+	if (m && !size) {
+		free(m);
+		m = 0;
 	}
 	return m;
 }
