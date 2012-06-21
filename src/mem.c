@@ -70,7 +70,7 @@ char* xrealpath(char* path, int free_path_afterwards)
 
 	p = realpath(path, 0);
 	if (!p && (errno != ENOENT)) {
-		die("realpath(): %s\n", strerror(errno));
+		die("realpath(): %s (errno %d)\n", strerror(errno), errno);
 	}
 	if (free_path_afterwards)
 		free(path);
