@@ -5,6 +5,9 @@
 #include <stdint.h>
 #include <syslog.h>
 
+/* mode_t */
+#include <sys/types.h>
+
 #if defined(_MSC_VER)
 #pragma section(".CRT$XCU", read)
 #define __constructor(f)			\
@@ -38,5 +41,23 @@ extern char* str_prepend(char* string1, const char* string2);
 
 char* path_resolve(char* path, const char* subtree);
 char* path_resolve_const(const char* path);
+
+typedef struct proc {
+	/* 0-terminated array, the first member must contain the path
+	 * to the program image (can be relative to the current working
+	 * directory and can contain symlinks, but must be resolvable),
+	 * the program image can be a shebang-introduced scriptfile */
+	char**		argv;
+	/* 0-terminated array, which contains the environment for the child
+	 * process */
+	char**		envp;
+	/* the umask for the child process */
+	mode_t		umask;
+	/* the working directory for the child process */
+	const char*	wd;
+} proc_t;
+
+extern int proc_fork_and_wait(proc_t* args);
+
 
 #endif /* _CSTD_H_ */
