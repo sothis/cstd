@@ -12,6 +12,7 @@ void die(char* format, ...)
 	va_start(varargs, format);
 	eprintf(LOG_CRIT, format, varargs);
 	va_end(varargs);
+	eprintf(LOG_CRIT, "terminating due to previous error\n");
 	exit(~0);
 }
 
@@ -62,6 +63,20 @@ void* xrealloc(void* ptr, size_t size)
 		m = 0;
 	}
 	return m;
+}
+
+char* xstrdup(const char* string)
+{
+	char* s;
+	size_t l;
+
+	if (!string) {
+		die("bug: tried to duplicate an unallocated string\n");
+	}
+	l = strlen(string);
+	s = xmalloc(l+1);
+	strcpy(s, string);
+	return s;
 }
 
 char* xrealpath(char* path, int free_path_afterwards)

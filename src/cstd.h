@@ -31,6 +31,7 @@ extern void cstd_eprint_version(void);
 extern void* xmalloc(size_t size);
 extern void* xcalloc(size_t member, size_t size);
 extern void* xrealloc(void* ptr, size_t size);
+extern char* xstrdup(const char* string);
 extern char* xrealpath(char* path, int free_path_afterwards);
 
 extern void die(char* format, ...);
