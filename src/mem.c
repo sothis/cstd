@@ -18,7 +18,12 @@ void die(char* format, ...)
 
 const char* xstrerror(void)
 {
-	return (errno > 0) ? strerror(errno) : "<no error string defined>";
+	int e = errno;
+
+	if (e < 0) {
+		die("strerror(): negative errno given (%d)\n", e);
+	}
+	return strerror(e);
 }
 
 void* xmalloc(size_t size)

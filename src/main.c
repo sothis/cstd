@@ -8,19 +8,18 @@
 int main(int argc, char* argv[], char* envp[])
 {
 	int e;
-	char* cargv[] = {
-		"ls",
-		"-la",
-		NULL,
-	};
 	proc_t p = {
+		.argv	= (char*[]){
+			"ls",
+			"-la",
+			NULL,
+		},
+		.envp	= envp,
+		.umask	= 077,
+		.wd	= "/",
 		.stdin	= STDIN_FILENO,
 		.stdout	= STDOUT_FILENO,
 		.stderr	= STDERR_FILENO,
-		.argv	= cargv,
-		.envp	= envp,
-		.umask	= 077,
-		.wd	= "/tmp",
 	};
 
 	cstd_eprint_version();
