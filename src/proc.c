@@ -50,11 +50,11 @@ static void proc_replace_process_image(proc_t* args, int redirect)
 	/* umask and working directory are inherited by the
 	 * process image which replaces our current image after
 	 * execvpe() */
-	umask(args->umask);
 	if (chdir(args->wd)) {
 		die("chdir() to '%s': %s (errno %d)\n", args->wd,
 			xstrerror(), errno);
 	}
+	umask(args->umask);
 	if (execvpe(args->argv[0], args->argv, args->envp))
 		die("execvpe() on '%s': %s (errno %d)\n", args->argv[0],
 			xstrerror(), errno);
