@@ -99,9 +99,25 @@ typedef enum lvl0_state {
 	dimension_lvl0,
 } lvl0_state_t;
 
+typedef enum entity_type {
+	entity_is_unknown = 0,
+	entity_is_identifier,
+	entity_is_null,
+	entity_is_string,
+	entity_is_numeric,
+	entity_is_struct,
+	dimension_entity
+} entity_type_t;
+
 typedef struct sdtl_parser {
 	int64_t	struct_nesting_level;
 	lvl0_state_t	state_lvl0;
+	int		first_byte_of_multibyte_token;
+	int		has_empty_identifier;
+	int		has_empty_value;
+	int		stream_started;
+	entity_type_t	current_type;
+	char*		current_multibyte_token;
 
 	action_t	actions_after_undefined[256];
 	action_t	actions_after_assignment_start[256];

@@ -1,8 +1,8 @@
 #include "cstd.h"
 
-//#include <stdio.h>
+#include <stdio.h>
 //#include <stdint.h>
-//#include <stdlib.h>
+#include <stdlib.h>
 #include <string.h>
 //#include <unistd.h>
 //#include <fcntl.h>
@@ -10,23 +10,69 @@
 //#include <inttypes.h>
 //#include <ctype.h>
 
-typedef enum entity_type {
-	entity_is_string = 0,
-	entity_is_numeric,
-	entity_is_struct,
-	dimension_entity
-} entity_type_t;
+
 
 typedef struct entity {
 	entity_type_t		type;
-	size_t			size;
 	char*			name;
-	void*			data;
-	struct entity*	next;
+	char*			data;
+//	struct entity*	next;
 } entity_t;
 
+entity_t cur_ent;
 
-//static int was_first=0;
+int action_on_identifier(char* id)
+{
+	cur_ent.type = entity_is_identifier;
+	cur_ent.name = id;
+	printf("identifier: '%s'\n", id);
+	return 0;
+}
+
+void action_on_null_value(void)
+{
+	cur_ent.type = entity_is_null;
+	cur_ent.data = 0;
+	printf("<null>\n");
+}
+
+int action_on_string(char* str)
+{
+	cur_ent.type = entity_is_string;
+	cur_ent.data = str;
+	printf("string: '%s'\n", str);
+	return 0;
+}
+
+int action_on_numeric(char* num)
+{
+	cur_ent.type = entity_is_numeric;
+	cur_ent.data = num;
+	printf("numeric: '%s'\n", num);
+	return 0;
+}
+
+int action_on_struct_value_start(void)
+{
+	printf("nest level increase\n");
+	return 0;
+}
+
+int action_on_struct_value_end(void)
+{
+	printf("nest level decrease\n");
+	return 0;
+}
+
+int action_on_value_end(void)
+{
+	/* TODO: this is currently broken after nest level
+	 * increase */
+	printf("value end\n");
+	return 0;
+}
+
+
 
 /* actions */
 static int action_ignore_whitespace(sdtl_parser_t* p, int byte)
@@ -37,48 +83,96 @@ static int action_ignore_whitespace(sdtl_parser_t* p, int byte)
 
 static int action_in_identifier(sdtl_parser_t* p, int byte)
 {
-//	if (!was_first) {
-//		printf("id: %c", byte);
-//		was_first = 1;
-//	} else
-//		printf("%c", byte);
+	char c[2] = { byte, 0x00 };
+
+	if (!p->first_byte_of_multibyte_token) {
+		if (p->stream_started) {
+			/* TODO: this is currently broken after nest level
+			 * increase */
+			action_on_value_end();
+		}
+		p->stream_started = 1;
+
+		p->first_byte_of_multibyte_token = 1;
+		p->current_type = entity_is_identifier;
+	}
+
+
+	/* NOTE: this is slow; a buffer should be used here, lowering the
+	 * amount of realloc's */
+	p->current_multibyte_token = str_append(p->current_multibyte_token, c);
+
+	p->has_empty_identifier = 0;
 	p->state_lvl0 = lvl0_assignment_start;
 	return 0;
 }
 
 static int action_start_assignment(sdtl_parser_t* p, int byte)
 {
+	p->has_empty_identifier = 1;
 	p->state_lvl0 = lvl0_assignment_start;
 	return 0;
 }
 
+static int end_multibyte_action(sdtl_parser_t* p)
+{
+	int r = 0;
+	switch (p->current_type) {
+		case entity_is_identifier:
+			r = action_on_identifier(p->current_multibyte_token);
+			break;
+		case entity_is_string:
+			r = action_on_string(p->current_multibyte_token);
+			break;
+		case entity_is_numeric:
+			r = action_on_numeric(p->current_multibyte_token);
+			break;
+		default:
+			break;
+	}
+	p->current_type = entity_is_unknown;
+	p->first_byte_of_multibyte_token = 0;
+	/* we pass this pointer to the event handlers, which has
+	 * to take care of freeing this memory */
+	p->current_multibyte_token = 0;
+	return r;
+}
+
 static int action_do_assignment(sdtl_parser_t* p, int byte)
 {
-//	was_first = 0;
-//	printf("\n");
+	if (p->has_empty_identifier)
+		return -1;
+
+	p->has_empty_identifier = 0;
+	p->has_empty_value = 1;
 	p->state_lvl0 = lvl0_assignment_op;
-	return 0;
+	return end_multibyte_action(p);
 }
 
 static int action_end_assignment(sdtl_parser_t* p, int byte)
 {
-//	was_first = 0;
-//	printf("\n");
+	if (p->has_empty_value)
+		action_on_null_value();
+
+	p->has_empty_value = 0;
 	p->state_lvl0 = lvl0_assignment_end;
-	return 0;
+
+	return end_multibyte_action(p);
 }
 
 static int action_introduce_binary_stream(sdtl_parser_t* p, int byte)
 {
+	p->has_empty_value = 0;
 	p->state_lvl0 = lvl0_introduce_binary_stream;
 	return 0;
 }
 
 static int action_introduce_struct(sdtl_parser_t* p, int byte)
 {
+	p->has_empty_value = 0;
 	p->state_lvl0 = lvl0_introduce_struct;
 	p->struct_nesting_level++;
-	return 0;
+	return action_on_struct_value_start();
 }
 
 static int action_terminate_struct(sdtl_parser_t* p, int byte)
@@ -87,22 +181,28 @@ static int action_terminate_struct(sdtl_parser_t* p, int byte)
 	p->struct_nesting_level--;
 	if (p->struct_nesting_level < 0)
 		return -1;
-	return 0;
+	return action_on_struct_value_end();
 }
 
 static int action_introduce_string(sdtl_parser_t* p, int byte)
 {
+	p->has_empty_value = 0;
 	p->state_lvl0 = lvl0_introduce_string;
 	return 0;
 }
 
 static int action_in_string(sdtl_parser_t* p, int byte)
 {
-//	if (!was_first) {
-//		printf("str: %c", byte);
-//		was_first = 1;
-//	} else
-//		printf("%c", byte);
+	char c[2] = { byte, 0x00 };
+
+	if (!p->first_byte_of_multibyte_token) {
+		p->first_byte_of_multibyte_token = 1;
+		p->current_type = entity_is_string;
+	}
+
+	/* NOTE: this is slow; a buffer should be used here, lowering the
+	 * amount of realloc's */
+	p->current_multibyte_token = str_append(p->current_multibyte_token, c);
 	p->state_lvl0 = lvl0_in_string;
 	return 0;
 }
@@ -121,11 +221,17 @@ static int action_terminate_string(sdtl_parser_t* p, int byte)
 
 static int action_in_number(sdtl_parser_t* p, int byte)
 {
-//	if (!was_first) {
-//		printf("num: %c", byte);
-//		was_first = 1;
-//	} else
-//		printf("%c", byte);
+	char c[2] = { byte, 0x00 };
+
+	if (!p->first_byte_of_multibyte_token) {
+		p->has_empty_value = 0;
+		p->first_byte_of_multibyte_token = 1;
+		p->current_type = entity_is_numeric;
+	}
+
+	/* NOTE: this is slow; a buffer should be used here, lowering the
+	 * amount of realloc's */
+	p->current_multibyte_token = str_append(p->current_multibyte_token, c);
 	p->state_lvl0 = lvl0_in_number;
 	return 0;
 }
@@ -160,6 +266,9 @@ static int32_t sdtl_parse(sdtl_parser_t* p, int byte)
 			break;
 		case lvl0_terminate_string:
 			action = p->actions_after_terminate_string[byte];
+			break;
+		case lvl0_escape_character:
+			action = p->actions_after_escape_character[byte];
 			break;
 		case lvl0_introduce_struct:
 			action = p->actions_after_introduce_struct[byte];
