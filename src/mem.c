@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <errno.h>
 #include <string.h>
+#include <stdio.h>
 
 void die(char* format, ...)
 {
@@ -12,6 +13,34 @@ void die(char* format, ...)
 	va_start(varargs, format);
 	veprintf(LOG_CRIT, format, varargs);
 	va_end(varargs);
+	eprintf(LOG_CRIT, "terminating due to previous error\n");
+	_exit(~0);
+}
+
+void pdie(char* format, ...)
+{
+	va_list varargs;
+	char buf[64];
+	int e;
+	char* se;
+
+	e = errno;
+	se = 0;
+
+	if (e != 0) {
+		sprintf(buf, " (errno %d)\n", e);
+
+		se = str_prepend(se, ": ");
+		if (e > 0)
+			se = str_append(se, strerror(e));
+		se = str_append(se, buf);
+	}
+	format = str_prepend(se, format);
+
+	va_start(varargs, format);
+	veprintf(LOG_CRIT, format, varargs);
+	va_end(varargs);
+	free(format);
 	eprintf(LOG_CRIT, "terminating due to previous error\n");
 	_exit(~0);
 }
@@ -36,7 +65,7 @@ void* xmalloc(size_t size)
 	m = malloc(size);
 	if (!m) {
 		errno = ENOMEM;
-		die("malloc(): %s\n", strerror(errno));
+		pdie("malloc()");
 	}
 	return m;
 }
@@ -51,7 +80,7 @@ void* xcalloc(size_t member, size_t size)
 	m = calloc(member, size);
 	if (!m) {
 		errno = ENOMEM;
-		die("calloc(): %s\n", strerror(errno));
+		pdie("calloc()");
 	}
 	return m;
 }
@@ -66,7 +95,7 @@ void* xrealloc(void* ptr, size_t size)
 	m = realloc(ptr, size);
 	if (!m && size) {
 		errno = ENOMEM;
-		die("realloc(): %s\n", strerror(errno));
+		pdie("realloc()");
 	}
 	if (m && !size) {
 		free(m);
@@ -95,7 +124,7 @@ char* xrealpath(char* path, int free_path_afterwards)
 
 	p = realpath(path, 0);
 	if (!p && (errno != ENOENT)) {
-		die("realpath(): %s (errno %d)\n", strerror(errno), errno);
+		pdie("realpath()");
 	}
 	if (free_path_afterwards)
 		free(path);

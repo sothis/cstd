@@ -14,16 +14,16 @@ static void proc_null_redirect(proc_t* args)
 
 	rfd = open(f, O_RDONLY, 0);
 	if (rfd < 0)
-		die("open() on '%s': %s (errno %d)\n", f, xstrerror(), errno);
+		pdie("open() on '%s'", f);
 	wfd = open(f, O_WRONLY, 0);
 	if (wfd < 0)
-		die("open() on '%s': %s (errno %d)\n", f, xstrerror(), errno);
+		pdie("open() on '%s'", f);
 
 	args->stdin = rfd;
 	args->stdout = wfd;
 	args->stderr = dup(wfd);
 	if (args->stderr < 0)
-		die("dup() on '%d': %s (errno %d)\n", wfd, xstrerror(), errno);
+		pdie("dup() on '%d'", wfd);
 }
 
 static void proc_replace_process_image(proc_t* args, int redirect)
@@ -33,31 +33,27 @@ static void proc_replace_process_image(proc_t* args, int redirect)
 	}
 	if (args->stdin != STDIN_FILENO) {
 		if (dup2(args->stdin, STDIN_FILENO) < 0)
-			die("dup2() on args->stdin: %s (errno %d)\n",
-				xstrerror(), errno);
+			pdie("dup2() on %d/STDIN_FILENO", args->stdin);
 	}
 	if (args->stdout != STDOUT_FILENO) {
 		if (dup2(args->stdout, STDOUT_FILENO) < 0)
-			die("dup2() on args->stdout: %s (errno %d)\n",
-				xstrerror(), errno);
+			pdie("dup2() on %d/STDOUT_FILENO", args->stdout);
 	}
 	if (args->stderr != STDERR_FILENO) {
 		if (dup2(args->stderr, STDERR_FILENO) < 0)
-			die("dup2() on args->stderr: %s (errno %d)\n",
-				xstrerror(), errno);
+			pdie("dup2() on %d/STDERR_FILENO", args->stderr);
 	}
 
 	/* umask and working directory are inherited by the
 	 * process image which replaces our current image after
 	 * execvpe() */
 	if (chdir(args->wd)) {
-		die("chdir() to '%s': %s (errno %d)\n", args->wd,
-			xstrerror(), errno);
+		pdie("chdir() to '%s'", args->wd);
 	}
 	umask(args->umask);
-	if (execvpe(args->argv[0], args->argv, args->envp))
-		die("execvpe() on '%s': %s (errno %d)\n", args->argv[0],
-			xstrerror(), errno);
+	if (execvpe(args->argv[0], args->argv, args->envp)) {
+		pdie("execvpe() on '%s'", args->argv[0]);
+	}
 }
 
 int proc_fork_and_wait(proc_t* args, int redirect)
@@ -68,14 +64,13 @@ int proc_fork_and_wait(proc_t* args, int redirect)
 
 	pid = fork();
 	if (pid < 0)
-		die("fork(): %s (errno %d)\n", xstrerror(), errno);
+		pdie("fork()");
 
 	if (pid) {
 		/* parent process, pid contains the child's pid */
 		do {
 			if (waitpid(pid, &stat, 0) < 0)
-				die("waitpid(): %s (errno %d)\n", xstrerror(),
-					errno);
+				pdie("waitpid()");
 		} while (!WIFEXITED(stat));
 		e = WEXITSTATUS(stat);
 		return e;

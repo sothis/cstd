@@ -106,6 +106,7 @@ SRC		+= ./src/version.c
 SRC		+= ./src/mem.c
 SRC		+= ./src/path.c
 SRC		+= ./src/proc.c
+SRC		+= ./src/sdtl.c
 SRC		+= ./src/string.c
 SRC		+= ./src/syslog.c
 
