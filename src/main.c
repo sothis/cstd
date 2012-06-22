@@ -25,7 +25,7 @@ int main(int argc, char* argv[], char* envp[])
 	cstd_eprint_version();
 
 	e = proc_fork_and_wait(&p, 1);
-	printf("exit code: %d\n", e);
+	die("exit code: %d\n", e);
 #if 0
 	char* s;
 	s = xmalloc(2);
