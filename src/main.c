@@ -3,13 +3,32 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
+#include <unistd.h>
 
 int main(int argc, char* argv[], char* envp[])
 {
-	char* s;
+	int e;
+	char* cargv[] = {
+		"ls",
+		"-la",
+		NULL,
+	};
+	proc_t p = {
+		.stdin	= STDIN_FILENO,
+		.stdout	= STDOUT_FILENO,
+		.stderr	= STDERR_FILENO,
+		.argv	= cargv,
+		.envp	= envp,
+		.umask	= 077,
+		.wd	= "/tmp",
+	};
 
 	cstd_eprint_version();
 
+	e = proc_fork_and_wait(&p, 1);
+	printf("exit code: %d\n", e);
+#if 0
+	char* s;
 	s = xmalloc(2);
 	strcpy(s, "s");
 	s = path_resolve(s, 0);
@@ -21,7 +40,6 @@ int main(int argc, char* argv[], char* envp[])
 		printf("str2: '%s'\n", s);
 		free(s);
 	}
-
+#endif
 	return 0;
 }
-

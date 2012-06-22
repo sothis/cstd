@@ -1,6 +1,5 @@
 #include "cstd.h"
 
-#include <stdarg.h>
 
 __constructor(__syslog_init)
 {
@@ -11,6 +10,11 @@ __constructor(__syslog_init)
 	/* TODO: make logmask configurable, also provide wrapper around
 	 * setlogmask() */
 	setlogmask(LOG_UPTO(LOG_DEBUG));
+}
+
+void veprintf(int loglevel, char* format, va_list valist)
+{
+	vsyslog(loglevel, format, valist);
 }
 
 void eprintf(int loglevel, char* format, ...)

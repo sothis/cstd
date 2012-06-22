@@ -1,8 +1,8 @@
 #include "cstd.h"
 
+#include <unistd.h>
 #include <stdlib.h>
 #include <errno.h>
-#include <stdarg.h>
 #include <string.h>
 
 void die(char* format, ...)
@@ -10,10 +10,15 @@ void die(char* format, ...)
 	va_list varargs;
 
 	va_start(varargs, format);
-	eprintf(LOG_CRIT, format, varargs);
+	veprintf(LOG_CRIT, format, varargs);
 	va_end(varargs);
 	eprintf(LOG_CRIT, "terminating due to previous error\n");
-	exit(~0);
+	_exit(~0);
+}
+
+const char* xstrerror(void)
+{
+	return (errno > 0) ? strerror(errno) : "<no error string defined>";
 }
 
 void* xmalloc(size_t size)

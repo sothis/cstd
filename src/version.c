@@ -78,7 +78,7 @@ uint32_t cstd_version_patchlevel(void)
 
 void cstd_eprint_version(void)
 {
-	eprintf(LOG_DEBUG, "cstd %s, %s %s%s",
+	eprintf(LOG_DEBUG, "cstd %s, %s %s%s\n",
 		__cstd_version_string,
 		__cstd_builddate_string,
 		__cstd_buildtime_string,
