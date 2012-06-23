@@ -175,8 +175,7 @@ int action_on_identifier(sdtl_parser_t* p, char* id)
 		p->root_entity->struct_is_open = 1;
 
 	last_entity = p->curr_entity;
-	p->curr_entity = new_entity;
-	p->curr_entity->prev_entity = last_entity;
+	new_entity->prev_entity = last_entity;
 
 	if (last_entity->struct_is_open && !last_entity->child_entity) {
 		last_entity->child_entity = new_entity;
@@ -184,6 +183,7 @@ int action_on_identifier(sdtl_parser_t* p, char* id)
 		last_entity->next_entity = new_entity;
 	}
 
+	p->curr_entity = new_entity;
 	return 0;
 }
 
@@ -241,6 +241,12 @@ int action_on_value_end(sdtl_parser_t* p)
 	 * logic on special named entities. Note that passing
 	 * an entity which is of type 'structure', doesn't make
 	 * always sense here and should be configurable. */
+
+	/* NOTE: do not modify p->curr_entity, return entity
+	 * name as const char*, the data for strings and nums can be
+	 * returned as char*: allow to free name and data in the callback,
+	 * the entity itself must remain untouched in order to preserve
+	 * inter-entity links */
 	return 0;
 }
 
