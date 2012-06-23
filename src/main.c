@@ -35,6 +35,11 @@ int main(int argc, char* argv[], char* envp[])
 	close(fd);
 
 	print_entities(&p, 1);
+
+	printf("\nvalid SDTL stream without whitespace:\n");
+	print_entities(&p, 0);
+	printf("\n\n");
+
 	sdtl_free(&p);
 
 	return 0;

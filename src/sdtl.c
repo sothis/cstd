@@ -233,6 +233,14 @@ int action_on_value_end(sdtl_parser_t* p)
 {
 	if (!p->struct_nesting_level)
 		p->root_entity->struct_is_open = 0;
+
+	/* possible point for a callback in order to pass a single
+	 * entity (p->curr_entity) to the application code. This
+	 * callback will get called in the order how the entities
+	 * appear, which allows incorporating application defined
+	 * logic on special named entities. Note that passing
+	 * an entity which is of type 'structure', doesn't make
+	 * always sense here and should be configurable. */
 	return 0;
 }
 
