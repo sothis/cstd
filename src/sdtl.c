@@ -21,6 +21,17 @@ typedef struct entity {
 
 entity_t cur_ent;
 
+/* The first parser step ensures that we get these entities in the correct
+ * order, it's always:
+ *	- on_identifer
+ * 	- on_null | on_string | on_numeric
+ * 	- on_value_end
+ *
+ * After on_identifier [on_struct_value_start] may occur. If so,
+ * [on_struct_value_end] or a list of entities with an increased
+ * nesting level may follow. If [on_struct_value_end] follows
+ * [on_value_end] or [on_struct_value_start], the nesting level decreases.
+ */
 int action_on_identifier(char* id)
 {
 	cur_ent.type = entity_is_identifier;
@@ -66,8 +77,6 @@ int action_on_struct_value_end(void)
 
 int action_on_value_end(void)
 {
-	/* TODO: this is currently broken after nest level
-	 * increase */
 	printf("value end\n");
 	return 0;
 }
@@ -86,13 +95,7 @@ static int action_in_identifier(sdtl_parser_t* p, int byte)
 	char c[2] = { byte, 0x00 };
 
 	if (!p->first_byte_of_multibyte_token) {
-		if (p->stream_started) {
-			/* TODO: this is currently broken after nest level
-			 * increase */
-			action_on_value_end();
-		}
 		p->stream_started = 1;
-
 		p->first_byte_of_multibyte_token = 1;
 		p->current_type = entity_is_identifier;
 	}
@@ -151,13 +154,17 @@ static int action_do_assignment(sdtl_parser_t* p, int byte)
 
 static int action_end_assignment(sdtl_parser_t* p, int byte)
 {
+	int r;
 	if (p->has_empty_value)
 		action_on_null_value();
 
 	p->has_empty_value = 0;
 	p->state_lvl0 = lvl0_assignment_end;
 
-	return end_multibyte_action(p);
+	r = end_multibyte_action(p);
+	if (r)
+		return r;
+	return action_on_value_end();
 }
 
 static int action_introduce_binary_stream(sdtl_parser_t* p, int byte)
@@ -199,6 +206,42 @@ static int action_in_string(sdtl_parser_t* p, int byte)
 		p->first_byte_of_multibyte_token = 1;
 		p->current_type = entity_is_string;
 	}
+
+	/* NOTE: this is slow; a buffer should be used here, lowering the
+	 * amount of realloc's */
+	p->current_multibyte_token = str_append(p->current_multibyte_token, c);
+	p->state_lvl0 = lvl0_in_string;
+	return 0;
+}
+
+static int action_replace_escape(sdtl_parser_t* p, int byte)
+{
+	char b;
+	char c[2] = { 0x00, 0x00 };
+
+	switch (byte) {
+		case 'b':
+			b = '\b';
+			break;
+		case 'f':
+			b = '\f';
+			break;
+		case 'n':
+			b = '\n';
+			break;
+		case 'r':
+			b = '\r';
+			break;
+		case 't':
+			b = '\t';
+			break;
+		case 'v':
+			b = '\v';
+			break;
+		default:
+			return -1;
+	}
+	c[0] = b;
 
 	/* NOTE: this is slow; a buffer should be used here, lowering the
 	 * amount of realloc's */
@@ -328,6 +371,8 @@ static void _sdtl_ignore_whitespace(action_t* action_list)
 
 int32_t sdtl_init(sdtl_parser_t* p)
 {
+/* NOTE: for performance reasons these tables might be written
+ * statically in C */
 	int i;
 	memset(p, 0, sizeof(sdtl_parser_t));
 	p->state_lvl0 = lvl0_undefined;
@@ -400,6 +445,14 @@ int32_t sdtl_init(sdtl_parser_t* p)
  * '"' to follow a '\' */
 	p->actions_after_escape_character['\\'] = &action_in_string;
 	p->actions_after_escape_character['"'] = &action_in_string;
+	/* NOTE: in SDTL it's not necessary to escape these, they are
+	 * supported just for convenience reasons */
+	p->actions_after_escape_character['b'] = &action_replace_escape;
+	p->actions_after_escape_character['f'] = &action_replace_escape;
+	p->actions_after_escape_character['n'] = &action_replace_escape;
+	p->actions_after_escape_character['r'] = &action_replace_escape;
+	p->actions_after_escape_character['t'] = &action_replace_escape;
+	p->actions_after_escape_character['v'] = &action_replace_escape;
 
 
 /* We come from 'lvl0_in_number': accept anything except ';' and '\0', ignore
@@ -408,6 +461,11 @@ int32_t sdtl_init(sdtl_parser_t* p)
 		p->actions_after_in_number[i] = &action_in_number;
 	_sdtl_ignore_whitespace(p->actions_after_in_number);
 	p->actions_after_in_number[';'] = &action_end_assignment;
+	/* disallow ',', '[', ']' in foresight of array support, zero
+	 * byte is disallowed since we handle the numeric as
+	 * C-string value in the first parser step */
+	p->actions_after_in_number[','] = 0;
+	p->actions_after_in_number[']'] = 0;
 	p->actions_after_in_number['\0'] = 0;
 
 
