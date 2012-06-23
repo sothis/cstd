@@ -33,7 +33,7 @@ int main(int argc, char* argv[], char* envp[])
 	}
 	close(fd);
 
-	print_entities(&p);
+	print_entities(&p, 1);
 	sdtl_free(&p);
 
 	return 0;

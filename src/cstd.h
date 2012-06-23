@@ -156,7 +156,7 @@ extern int32_t
 sdtl_add_input_data(sdtl_parser_t* p, unsigned char* data, int32_t len);
 
 extern void
-print_entities(sdtl_parser_t* p);
+print_entities(sdtl_parser_t* p, int use_whitespace);
 
 extern void
 sdtl_free(sdtl_parser_t* p);

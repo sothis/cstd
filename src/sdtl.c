@@ -12,46 +12,68 @@ static void indent(int level)
 	}
 }
 
-static void print_entities_recursive(size_t level, entity_t* first)
+static void print_entities_recursive(size_t level, entity_t* first, int w)
 {
 	entity_t* e = first;
+	int whitespace = w;
 
 	while (e) {
 		if (e->type == entity_is_struct) {
 			/* NOTE: may cause stackoverflow if nesting level
-			 * is too high */
-			indent(level);
-			/* empty struct */
+			 * is too high, use an own stack in order to
+			 * be able to apply a configurable limit */
+			if (whitespace)
+				indent(level);
 			if (!e->child_entity) {
-				printf(".%s = {};\n", e->name);
+				/* struct is empty */
+				if (whitespace)
+					printf(".%s = {};\n", e->name);
+				else
+					printf(".%s={};", e->name);
 			} else {
-				printf(".%s = {\n", e->name);
+				if (whitespace)
+					printf(".%s = {\n", e->name);
+				else
+					printf(".%s={", e->name);
 				print_entities_recursive(level+1,
-					e->child_entity);
+					e->child_entity, whitespace);
 				if (!e->struct_is_open) {
-					indent(level);
-					printf("};\n");
+					if (whitespace) {
+						indent(level);
+						printf("};\n");
+					} else
+						printf("};");
 				}
 			}
 		}
 		else if (e->type == entity_is_null) {
-			indent(level);
-			printf(".%s = ;\n", e->name);
+			if (whitespace) {
+				indent(level);
+				printf(".%s = ;\n", e->name);
+			} else
+				printf(".%s=;", e->name);
 		} else if (e->type == entity_is_string) {
 			/* TODO: escape '"' and '\' */
-			indent(level);
-			printf(".%s = \"%s\";\n", e->name, e->data);
+			if (whitespace) {
+				indent(level);
+				printf(".%s = \"%s\";\n", e->name, e->data);
+			} else
+				printf(".%s=\"%s\";", e->name, e->data);
 		} else if (e->type == entity_is_numeric) {
-			indent(level);
-			printf(".%s = %s;\n", e->name, e->data);
+			if (whitespace) {
+				indent(level);
+				printf(".%s = %s;\n", e->name, e->data);
+			} else
+				printf(".%s=%s;", e->name, e->data);
 		}
 		e = e->next_entity;
 	}
 }
 
-void print_entities(sdtl_parser_t* p)
+void print_entities(sdtl_parser_t* p, int use_whitespace)
 {
-	print_entities_recursive(0, p->root_entity);
+	print_entities_recursive(0, p->root_entity->child_entity,
+		use_whitespace);
 }
 
 static void free_entities(entity_t* first)
