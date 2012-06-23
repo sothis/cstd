@@ -23,7 +23,7 @@ entity_t cur_ent;
 
 /* The first parser step ensures that we get these entities in the correct
  * order, it's always:
- *	- on_identifer
+ *	- on_identifier
  * 	- on_null | on_string | on_numeric
  * 	- on_value_end
  *
