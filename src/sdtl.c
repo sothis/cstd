@@ -4,82 +4,213 @@
 #include <stdlib.h>
 #include <string.h>
 
-/* The first parser step ensures that we get these entities in the correct
- * order, it's always:
- *	- on_identifier
- * 	- on_null | on_string | on_numeric
- * 	- on_value_end
- *
- * After on_identifier [on_struct_value_start] may occur. If so,
- * [on_struct_value_end] or a list of entities with an increased
- * nesting level may follow. If [on_struct_value_end] follows
- * [on_value_end] or [on_struct_value_start], the nesting level decreases.
- */
+static void indent(int level)
+{
+	while (level) {
+		printf("\t");
+		level--;
+	}
+}
+
+static void print_entities_recursive(size_t level, entity_t* first)
+{
+	entity_t* e = first;
+
+	while (e) {
+		if (e->type == entity_is_struct) {
+			/* NOTE: may cause stackoverflow if nesting level
+			 * is too high */
+			indent(level);
+			/* empty struct */
+			if (!e->child_entity) {
+				printf(".%s = {};\n", e->name);
+			} else {
+				printf(".%s = {\n", e->name);
+				print_entities_recursive(level+1,
+					e->child_entity);
+				if (!e->struct_is_open) {
+					indent(level);
+					printf("};\n");
+				}
+			}
+		}
+		else if (e->type == entity_is_null) {
+			indent(level);
+			printf(".%s = ;\n", e->name);
+		} else if (e->type == entity_is_string) {
+			/* TODO: escape '"' and '\' */
+			indent(level);
+			printf(".%s = \"%s\";\n", e->name, e->data);
+		} else if (e->type == entity_is_numeric) {
+			indent(level);
+			printf(".%s = %s;\n", e->name, e->data);
+		}
+		e = e->next_entity;
+	}
+}
+
+void print_entities(sdtl_parser_t* p)
+{
+	print_entities_recursive(0, p->root_entity);
+}
+
+static void free_entities(entity_t* first)
+{
+	entity_t* n, *c;
+	entity_t* e = first;
+	int is_struct;
+
+	while (e) {
+		is_struct = (e->type == entity_is_struct);
+		n = e->next_entity;
+		c = e->child_entity;
+		free(e->name);
+		if (e->data)
+			free(e->data);
+		free(e);
+
+		if (is_struct) {
+			free_entities(c);
+		}
+		e = n;
+	}
+}
+
+void sdtl_free(sdtl_parser_t* p)
+{
+	free_entities(p->root_entity);
+	if (p->current_multibyte_token) {
+		free(p->current_multibyte_token);
+		p->current_multibyte_token = 0;
+	}
+	p->root_entity = p->curr_entity = 0;
+}
+
+/* simple fixed sized stack */
+static int push_struct_entity(sdtl_parser_t* p, entity_t* first)
+{
+	/* full */
+	if (p->stack_head == sizeof(p->nesting_stack)/sizeof(void*))
+		return -1;
+	p->nesting_stack[p->stack_head] = first;
+	p->stack_head++;
+	return 0;
+}
+
+static entity_t* pop_struct_entity(sdtl_parser_t* p)
+{
+	/* empty */
+	if (!p->stack_head)
+		return 0;
+	p->stack_head--;
+	return p->nesting_stack[p->stack_head];
+}
+
 
 /* second-level actions */
-int action_on_identifier(sdtl_parser_t* p, char* id)
+/* The first parser step ensures that we get these entities in the correct
+ * order */
+int action_on_stream_start(sdtl_parser_t* p, entity_t* first)
 {
-	if (!p->stream_started) {
-		p->stream_started = 1;
-		p->root_entity = calloc(1, sizeof(entity_t));
-		if (!p->root_entity)
-			return -1;
-		p->root_entity->type = entity_is_struct;
-		p->root_entity->name = "";
-		p->curr_entity = p->root_entity;
-	}
-
-	p->temp_entity = calloc(1, sizeof(entity_t));
-	if (!p->temp_entity) {
+	p->root_entity = calloc(1, sizeof(entity_t));
+	if (!p->root_entity)
+		return -1;
+	p->root_entity->type = entity_is_struct;
+	p->root_entity->name = malloc(1);
+	if (!p->root_entity->name) {
+		free(p->root_entity);
+		p->root_entity = 0;
 		return -1;
 	}
+	*p->root_entity->name = 0;
+	p->root_entity->struct_is_open = 1;
+	p->curr_entity = p->root_entity;
+	return 0;
+}
 
-	p->temp_entity->type = entity_is_identifier;
-	p->temp_entity->name = id;
-	printf("identifier: '%s'\n", id);
+int action_on_identifier(sdtl_parser_t* p, char* id)
+{
+	int r = 0;
+	entity_t* last_entity;
+	entity_t* new_entity;
+
+	new_entity = calloc(1, sizeof(entity_t));
+	if (!new_entity) {
+		return -1;
+	}
+	new_entity->name = id;
+
+	if (!p->stream_started) {
+		p->stream_started = 1;
+		r = action_on_stream_start(p, new_entity);
+		if (r) {
+			free(new_entity);
+			return -1;
+		}
+	}
+
+	if (!p->struct_nesting_level)
+		p->root_entity->struct_is_open = 1;
+
+	last_entity = p->curr_entity;
+	p->curr_entity = new_entity;
+	p->curr_entity->prev_entity = last_entity;
+
+	if (last_entity->struct_is_open && !last_entity->child_entity) {
+		last_entity->child_entity = new_entity;
+	} else {
+		last_entity->next_entity = new_entity;
+	}
+
 	return 0;
 }
 
 void action_on_null_value(sdtl_parser_t* p)
 {
-	p->temp_entity->type = entity_is_null;
-	p->temp_entity->data = 0;
-	printf("<null>\n");
+	p->curr_entity->type = entity_is_null;
+	p->curr_entity->data = 0;
 }
 
 int action_on_string(sdtl_parser_t* p, char* str)
 {
-	p->temp_entity->type = entity_is_string;
-	p->temp_entity->data = str;
-	printf("string: '%s'\n", str);
+	p->curr_entity->type = entity_is_string;
+	p->curr_entity->data = str;
 	return 0;
 }
 
 int action_on_numeric(sdtl_parser_t* p, char* num)
 {
-	p->temp_entity->type = entity_is_numeric;
-	p->temp_entity->data = num;
-	printf("numeric: '%s'\n", num);
+	p->curr_entity->type = entity_is_numeric;
+	p->curr_entity->data = num;
 	return 0;
 }
 
 int action_on_struct_value_start(sdtl_parser_t* p)
 {
-	p->temp_entity->type = entity_is_struct;
-
-	printf("nest level increase\n");
-	return 0;
+	p->curr_entity->type = entity_is_struct;
+	p->curr_entity->data = 0;
+	p->curr_entity->struct_is_open = 1;
+	return push_struct_entity(p, p->curr_entity);
 }
 
 int action_on_struct_value_end(sdtl_parser_t* p)
 {
-	printf("nest level decrease\n");
+	p->curr_entity = pop_struct_entity(p);
+	if (!p->curr_entity)
+		return -1;
+	p->curr_entity->struct_is_open = 0;
+#if 0
+	/* if struct is empty, convert entity type to entity_is_null */
+	if (!p->curr_entity->child_entity)
+		p->curr_entity->type = entity_is_null;
+#endif
 	return 0;
 }
 
 int action_on_value_end(sdtl_parser_t* p)
 {
-	printf("value end\n");
+	if (!p->struct_nesting_level)
+		p->root_entity->struct_is_open = 0;
 	return 0;
 }
 
@@ -155,12 +286,12 @@ static int action_do_assignment(sdtl_parser_t* p, int byte)
 static int action_end_assignment(sdtl_parser_t* p, int byte)
 {
 	int r;
-	if (p->has_empty_value)
+	if (p->has_empty_value) {
 		action_on_null_value(p);
+		p->has_empty_value = 0;
+	}
 
-	p->has_empty_value = 0;
 	p->state_lvl0 = lvl0_assignment_end;
-
 	r = end_multibyte_action(p);
 	if (r)
 		return r;
@@ -193,7 +324,6 @@ static int action_terminate_struct(sdtl_parser_t* p, int byte)
 
 static int action_introduce_string(sdtl_parser_t* p, int byte)
 {
-	p->has_empty_value = 0;
 	p->state_lvl0 = lvl0_introduce_string;
 	return 0;
 }
@@ -203,6 +333,7 @@ static int action_in_string(sdtl_parser_t* p, int byte)
 	char c[2] = { byte, 0x00 };
 
 	if (!p->first_byte_of_multibyte_token) {
+		p->has_empty_value = 0;
 		p->first_byte_of_multibyte_token = 1;
 		p->current_type = entity_is_string;
 	}
@@ -323,17 +454,21 @@ static int32_t sdtl_parse(sdtl_parser_t* p, int byte)
 			action = p->actions_after_terminate_struct[byte];
 			break;
 		default:
-			return -1;
+			goto err_out;
 	}
 
 	if (!action) {
 //		printf("unexpected byte: 0x%.2x ('%c')\n",
 //			(uint8_t)byte, (uint8_t)byte);
-		return -1;
+		goto err_out;
 	}
 	if (action(p, byte))
-		return -1;
+		goto err_out;
+
 	return 0;
+err_out:
+	sdtl_free(p);
+	return -1;
 }
 
 /* feed statemachine, handle binary streams */
@@ -372,7 +507,7 @@ static void _sdtl_ignore_whitespace(action_t* action_list)
 	action_list[0x20] = &action_ignore_whitespace;
 }
 
-int32_t sdtl_init(sdtl_parser_t* p)
+void sdtl_init(sdtl_parser_t* p)
 {
 /* NOTE: for performance reasons these tables might be written
  * statically in C */
@@ -393,6 +528,10 @@ int32_t sdtl_init(sdtl_parser_t* p)
 	_sdtl_ignore_whitespace(p->actions_after_assignment_start);
 	p->actions_after_assignment_start[0x00] = 0;
 	p->actions_after_assignment_start['.'] = 0;
+	p->actions_after_assignment_start['['] = 0;
+	p->actions_after_assignment_start[']'] = 0;
+	p->actions_after_assignment_start['{'] = 0;
+	p->actions_after_assignment_start['}'] = 0;
 	p->actions_after_assignment_start['='] = &action_do_assignment;
 
 
@@ -464,11 +603,11 @@ int32_t sdtl_init(sdtl_parser_t* p)
 		p->actions_after_in_number[i] = &action_in_number;
 	_sdtl_ignore_whitespace(p->actions_after_in_number);
 	p->actions_after_in_number[';'] = &action_end_assignment;
-	/* disallow ',', '[', ']' in foresight of array support, zero
-	 * byte is disallowed since we handle the numeric as
-	 * C-string value in the first parser step */
 	p->actions_after_in_number[','] = 0;
+	p->actions_after_in_number['['] = 0;
 	p->actions_after_in_number[']'] = 0;
+	p->actions_after_in_number['{'] = 0;
+	p->actions_after_in_number['}'] = 0;
 	p->actions_after_in_number['\0'] = 0;
 
 
@@ -478,6 +617,4 @@ int32_t sdtl_init(sdtl_parser_t* p)
 
 	_sdtl_ignore_whitespace(p->actions_after_terminate_struct);
 	p->actions_after_terminate_struct[';'] = &action_end_assignment;
-
-	return 0;
 }

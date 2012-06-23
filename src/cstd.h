@@ -113,6 +113,7 @@ typedef struct entity {
 	entity_type_t		type;
 	char*			name;
 	char*			data;
+	int			struct_is_open;
 	struct entity*	next_entity;
 	struct entity*	prev_entity;
 	struct entity*	child_entity;
@@ -128,9 +129,12 @@ typedef struct sdtl_parser {
 	entity_type_t	current_type;
 	char*		current_multibyte_token;
 
+	/* this limits the maximum struct nesting level */
+	entity_t*	nesting_stack[256];
+	size_t		stack_head;
+
 	entity_t*	root_entity;
 	entity_t*	curr_entity;
-	entity_t*	temp_entity;
 
 	action_t	actions_after_undefined[256];
 	action_t	actions_after_assignment_start[256];
@@ -145,10 +149,17 @@ typedef struct sdtl_parser {
 	action_t	actions_after_terminate_struct[256];
 } sdtl_parser_t;
 
-extern int32_t
+extern void
 sdtl_init(sdtl_parser_t* p);
 
 extern int32_t
 sdtl_add_input_data(sdtl_parser_t* p, unsigned char* data, int32_t len);
+
+extern void
+print_entities(sdtl_parser_t* p);
+
+extern void
+sdtl_free(sdtl_parser_t* p);
+
 
 #endif /* _CSTD_H_ */
