@@ -476,21 +476,18 @@ static int32_t sdtl_parse(sdtl_parser_t* p, int byte)
 			action = p->actions_after_terminate_struct[byte];
 			break;
 		default:
-			goto err_out;
+			return -1;
 	}
 
 	if (!action) {
 //		printf("unexpected byte: 0x%.2x ('%c')\n",
 //			(uint8_t)byte, (uint8_t)byte);
-		goto err_out;
+		return -1;
 	}
 	if (action(p, byte))
-		goto err_out;
+		return -1;
 
 	return 0;
-err_out:
-	sdtl_free(p);
-	return -1;
 }
 
 /* feed statemachine, handle binary streams */

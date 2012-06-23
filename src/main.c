@@ -25,6 +25,7 @@ int main(int argc, char* argv[], char* envp[])
 
 	while ((r = read(fd, buf, 4096)) > 0) {
 		if (sdtl_add_input_data(&p, buf, r)) {
+			sdtl_free(&p);
 			die("parser error\n");
 		}
 	}
