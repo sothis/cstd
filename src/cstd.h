@@ -109,6 +109,15 @@ typedef enum entity_type {
 	dimension_entity
 } entity_type_t;
 
+typedef struct entity {
+	entity_type_t		type;
+	char*			name;
+	char*			data;
+	struct entity*	next_entity;
+	struct entity*	prev_entity;
+	struct entity*	child_entity;
+} entity_t;
+
 typedef struct sdtl_parser {
 	int64_t	struct_nesting_level;
 	lvl0_state_t	state_lvl0;
@@ -118,6 +127,10 @@ typedef struct sdtl_parser {
 	int		stream_started;
 	entity_type_t	current_type;
 	char*		current_multibyte_token;
+
+	entity_t*	root_entity;
+	entity_t*	curr_entity;
+	entity_t*	temp_entity;
 
 	action_t	actions_after_undefined[256];
 	action_t	actions_after_assignment_start[256];

@@ -1,25 +1,8 @@
 #include "cstd.h"
 
 #include <stdio.h>
-//#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
-//#include <unistd.h>
-//#include <fcntl.h>
-//#include <errno.h>
-//#include <inttypes.h>
-//#include <ctype.h>
-
-
-
-typedef struct entity {
-	entity_type_t		type;
-	char*			name;
-	char*			data;
-//	struct entity*	next;
-} entity_t;
-
-entity_t cur_ent;
 
 /* The first parser step ensures that we get these entities in the correct
  * order, it's always:
@@ -32,50 +15,69 @@ entity_t cur_ent;
  * nesting level may follow. If [on_struct_value_end] follows
  * [on_value_end] or [on_struct_value_start], the nesting level decreases.
  */
-int action_on_identifier(char* id)
+
+/* second-level actions */
+int action_on_identifier(sdtl_parser_t* p, char* id)
 {
-	cur_ent.type = entity_is_identifier;
-	cur_ent.name = id;
+	if (!p->stream_started) {
+		p->stream_started = 1;
+		p->root_entity = calloc(1, sizeof(entity_t));
+		if (!p->root_entity)
+			return -1;
+		p->root_entity->type = entity_is_struct;
+		p->root_entity->name = "";
+		p->curr_entity = p->root_entity;
+	}
+
+	p->temp_entity = calloc(1, sizeof(entity_t));
+	if (!p->temp_entity) {
+		return -1;
+	}
+
+	p->temp_entity->type = entity_is_identifier;
+	p->temp_entity->name = id;
 	printf("identifier: '%s'\n", id);
 	return 0;
 }
 
-void action_on_null_value(void)
+void action_on_null_value(sdtl_parser_t* p)
 {
-	cur_ent.type = entity_is_null;
-	cur_ent.data = 0;
+	p->temp_entity->type = entity_is_null;
+	p->temp_entity->data = 0;
 	printf("<null>\n");
 }
 
-int action_on_string(char* str)
+int action_on_string(sdtl_parser_t* p, char* str)
 {
-	cur_ent.type = entity_is_string;
-	cur_ent.data = str;
+	p->temp_entity->type = entity_is_string;
+	p->temp_entity->data = str;
 	printf("string: '%s'\n", str);
 	return 0;
 }
 
-int action_on_numeric(char* num)
+int action_on_numeric(sdtl_parser_t* p, char* num)
 {
-	cur_ent.type = entity_is_numeric;
-	cur_ent.data = num;
+	p->temp_entity->type = entity_is_numeric;
+	p->temp_entity->data = num;
 	printf("numeric: '%s'\n", num);
 	return 0;
 }
 
-int action_on_struct_value_start(void)
+int action_on_struct_value_start(sdtl_parser_t* p)
 {
+	p->temp_entity->type = entity_is_struct;
+
 	printf("nest level increase\n");
 	return 0;
 }
 
-int action_on_struct_value_end(void)
+int action_on_struct_value_end(sdtl_parser_t* p)
 {
 	printf("nest level decrease\n");
 	return 0;
 }
 
-int action_on_value_end(void)
+int action_on_value_end(sdtl_parser_t* p)
 {
 	printf("value end\n");
 	return 0;
@@ -83,7 +85,7 @@ int action_on_value_end(void)
 
 
 
-/* actions */
+/* first-level actions */
 static int action_ignore_whitespace(sdtl_parser_t* p, int byte)
 {
 	/* just keep current state, do nothing */
@@ -95,11 +97,9 @@ static int action_in_identifier(sdtl_parser_t* p, int byte)
 	char c[2] = { byte, 0x00 };
 
 	if (!p->first_byte_of_multibyte_token) {
-		p->stream_started = 1;
 		p->first_byte_of_multibyte_token = 1;
 		p->current_type = entity_is_identifier;
 	}
-
 
 	/* NOTE: this is slow; a buffer should be used here, lowering the
 	 * amount of realloc's */
@@ -122,13 +122,13 @@ static int end_multibyte_action(sdtl_parser_t* p)
 	int r = 0;
 	switch (p->current_type) {
 		case entity_is_identifier:
-			r = action_on_identifier(p->current_multibyte_token);
+			r = action_on_identifier(p, p->current_multibyte_token);
 			break;
 		case entity_is_string:
-			r = action_on_string(p->current_multibyte_token);
+			r = action_on_string(p, p->current_multibyte_token);
 			break;
 		case entity_is_numeric:
-			r = action_on_numeric(p->current_multibyte_token);
+			r = action_on_numeric(p, p->current_multibyte_token);
 			break;
 		default:
 			break;
@@ -156,7 +156,7 @@ static int action_end_assignment(sdtl_parser_t* p, int byte)
 {
 	int r;
 	if (p->has_empty_value)
-		action_on_null_value();
+		action_on_null_value(p);
 
 	p->has_empty_value = 0;
 	p->state_lvl0 = lvl0_assignment_end;
@@ -164,7 +164,7 @@ static int action_end_assignment(sdtl_parser_t* p, int byte)
 	r = end_multibyte_action(p);
 	if (r)
 		return r;
-	return action_on_value_end();
+	return action_on_value_end(p);
 }
 
 static int action_introduce_binary_stream(sdtl_parser_t* p, int byte)
@@ -179,7 +179,7 @@ static int action_introduce_struct(sdtl_parser_t* p, int byte)
 	p->has_empty_value = 0;
 	p->state_lvl0 = lvl0_introduce_struct;
 	p->struct_nesting_level++;
-	return action_on_struct_value_start();
+	return action_on_struct_value_start(p);
 }
 
 static int action_terminate_struct(sdtl_parser_t* p, int byte)
@@ -188,7 +188,7 @@ static int action_terminate_struct(sdtl_parser_t* p, int byte)
 	p->struct_nesting_level--;
 	if (p->struct_nesting_level < 0)
 		return -1;
-	return action_on_struct_value_end();
+	return action_on_struct_value_end(p);
 }
 
 static int action_introduce_string(sdtl_parser_t* p, int byte)
@@ -284,6 +284,9 @@ static int action_in_number(sdtl_parser_t* p, int byte)
 static int32_t sdtl_parse(sdtl_parser_t* p, int byte)
 {
 	action_t action = 0;
+
+	/* TODO: if something fails in here, free memory and reset
+	 * parser with sdtl_init() */
 
 	switch (p->state_lvl0) {
 		case lvl0_undefined:
