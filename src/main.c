@@ -28,6 +28,10 @@ int main(int argc, char* argv[], char* envp[])
 
 	if (sdtl_factory_add_string(&fac, "value0", "Hello\\, \"world\"!"))
 		goto err_out;
+	if (sdtl_factory_start_struct(&fac, "empty_struct"))
+		goto err_out;
+	if (sdtl_factory_end_struct(&fac))
+		goto err_out;
 	if (sdtl_factory_add_num(&fac, "value1", 0))
 		goto err_out;
 	if (sdtl_factory_add_num(&fac, "value2", "35218.1535"))

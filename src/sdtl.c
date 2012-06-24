@@ -146,8 +146,9 @@ static void print_entities_recursive(size_t level, entity_t* first, int w)
 
 void print_entities(sdtl_parser_t* p, int use_whitespace)
 {
-	print_entities_recursive(0, p->root_entity->child_entity,
-		use_whitespace);
+	if (p->root_entity)
+		print_entities_recursive(0, p->root_entity->child_entity,
+			use_whitespace);
 }
 
 static void free_entities(entity_t* first)
@@ -295,11 +296,9 @@ int action_on_struct_value_end(sdtl_parser_t* p)
 	if (!p->curr_entity)
 		return -1;
 	p->curr_entity->struct_is_open = 0;
-#if 0
 	/* if struct is empty, convert entity type to entity_is_null */
 	if (!p->curr_entity->child_entity)
 		p->curr_entity->type = entity_is_null;
-#endif
 	return 0;
 }
 
@@ -787,6 +786,32 @@ static int sdtl_add_identifier(sdtl_factory_t* f, const char* id)
 
 	lid = strlen(id);
 	for (i = 0; i < lid; ++i) {
+#if ALLOW_ESCAPES_IN_IDENTIFIER
+		if (
+			id[i] == '.' ||
+			id[i] == ';' ||
+			id[i] == '=' ||
+			id[i] == ']' ||
+			id[i] == ',' ||
+			id[i] == '/' ||
+			id[i] == '\\'
+
+		) {
+			r = sdtl_add_byte(f, '\\');
+			if (r)
+				break;
+		}
+#else
+		if (
+			id[i] == '.' ||
+			id[i] == ';' ||
+			id[i] == '=' ||
+			id[i] == ']' ||
+			id[i] == ',' ||
+			id[i] == '/'
+		)
+			return -1;
+#endif
 		r = sdtl_add_byte(f, id[i]);
 		if (r)
 			break;
@@ -859,12 +884,25 @@ static int sdtl_add_num(sdtl_factory_t* f, const char* num)
 
 	lnum = strlen(num);
 	for (i = 0; i < lnum; ++i) {
+#if ALLOW_ESCAPES_IN_NUMERIC
+		if (
+			num[i] == ';' ||
+			num[i] == ',' ||
+			num[i] == ']' ||
+			num[i] == '\\'
+		) {
+			r = sdtl_add_byte(f, '\\');
+			if (r)
+				break;
+		}
+#else
 		if (
 			num[i] == ';' ||
 			num[i] == ',' ||
 			num[i] == ']'
 		)
 			return -1;
+#endif
 		r = sdtl_add_byte(f, num[i]);
 		if (r)
 			break;
