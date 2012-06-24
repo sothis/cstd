@@ -150,20 +150,19 @@ typedef struct sdtl_parser {
 } sdtl_parser_t;
 
 extern void
-sdtl_init(sdtl_parser_t* p);
-
-extern int32_t
-sdtl_add_input_data(sdtl_parser_t* p, unsigned char* data, int32_t len);
+sdtl_parser_init(sdtl_parser_t* p);
 
 extern void
-print_entities(sdtl_parser_t* p, int use_whitespace);
+sdtl_parser_free(sdtl_parser_t* p);
 
 extern void
-sdtl_free(sdtl_parser_t* p);
+sdtl_parser_print(sdtl_parser_t* p, int use_whitespace);
 
-extern entity_t*
-sdtl_get_entity_abs(sdtl_parser_t* p, const char* path);
+extern int
+sdtl_parser_add_data(sdtl_parser_t* p, unsigned char* data, size_t len);
 
+extern const char*
+sdtl_parser_get_data(sdtl_parser_t* p, const char* path);
 
 
 struct sdtl_factory;

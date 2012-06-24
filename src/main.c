@@ -14,7 +14,7 @@ int write_sdtl_data(sdtl_factory_t* f, unsigned char* data, size_t len)
 	for (i = 0; i < len; ++i)
 		printf("%c", data[i]);
 
-	if (sdtl_add_input_data(&p, data, len)) {
+	if (sdtl_parser_add_data(&p, data, len)) {
 		return -1;
 	}
 	return 0;
@@ -23,12 +23,12 @@ int write_sdtl_data(sdtl_factory_t* f, unsigned char* data, size_t len)
 int main(int argc, char* argv[], char* envp[])
 {
 #if 1
-	sdtl_init(&p);
+	sdtl_parser_init(&p);
 	sdtl_factory_init(&fac, &write_sdtl_data);
 
 	if (sdtl_factory_start_struct(&fac, "main"))
 		goto err_out;
-	if (sdtl_factory_add_num(&fac, "port", "42"))
+	if (sdtl_factory_add_num(&fac, "main", "42"))
 		goto err_out;
 	if (sdtl_factory_end_struct(&fac))
 		goto err_out;
@@ -64,12 +64,21 @@ int main(int argc, char* argv[], char* envp[])
 	}
 
 	printf("\n\nparsed output:\n");
-	print_entities(&p, 1);
-	sdtl_free(&p);
+	sdtl_parser_print(&p, 1);
+
+	if (argc == 3) {
+		const char* data;
+		data = sdtl_parser_get_data(&p, argv[2]);
+		if (!data)
+			die("component not found, or data not set\n");
+		printf("%s: '%s'\n", argv[2], data);
+	}
+
+	sdtl_parser_free(&p);
 	return 0;
 
 err_out:
-	sdtl_free(&p);
+	sdtl_parser_free(&p);
 	die("parser error");
 	return -1;
 #endif

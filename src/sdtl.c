@@ -86,6 +86,17 @@ entity_t* sdtl_get_entity_abs(sdtl_parser_t* p, const char* path)
 	return r;
 }
 
+const char* sdtl_parser_get_data(sdtl_parser_t* p, const char* path)
+{
+	entity_t* e = 0;
+	e = sdtl_get_entity_abs(p, path);
+	if (!e)
+		return 0;
+	if (e->type == entity_is_struct)
+		return 0;
+	return e->data;
+}
+
 static void
 print_escaped_string(size_t level, const char* name, const char* str, int w)
 {
@@ -164,7 +175,7 @@ static void print_entities_recursive(size_t level, entity_t* first, int w)
 	}
 }
 
-void print_entities(sdtl_parser_t* p, int use_whitespace)
+void sdtl_parser_print(sdtl_parser_t* p, int use_whitespace)
 {
 	if (p->root_entity)
 		print_entities_recursive(0, p->root_entity->child_entity,
@@ -193,7 +204,7 @@ static void free_entities(entity_t* first)
 	}
 }
 
-void sdtl_free(sdtl_parser_t* p)
+void sdtl_parser_free(sdtl_parser_t* p)
 {
 	free_entities(p->root_entity);
 	if (p->current_multibyte_token) {
@@ -558,7 +569,7 @@ static int32_t sdtl_parse(sdtl_parser_t* p, int byte)
 	action_t action = 0;
 
 	/* TODO: if something fails in here, free memory and reset
-	 * parser with sdtl_init() */
+	 * parser with sdtl_parser_init() */
 
 	switch (p->state_lvl0) {
 		case lvl0_undefined:
@@ -610,13 +621,11 @@ static int32_t sdtl_parse(sdtl_parser_t* p, int byte)
 }
 
 /* feed statemachine, handle binary streams */
-int32_t
-sdtl_add_input_data(sdtl_parser_t* p, unsigned char* data, int32_t len)
+int
+sdtl_parser_add_data(sdtl_parser_t* p, unsigned char* data, size_t len)
 {
-	uint32_t idx = 0;
+	size_t idx;
 
-	if (len < 0)
-		return -1;
 	if (!len)
 		return 0;
 
@@ -648,7 +657,7 @@ static void _sdtl_ignore_whitespace(action_t* action_list)
 	action_list[0x20] = &action_ignore_whitespace;
 }
 
-void sdtl_init(sdtl_parser_t* p)
+void sdtl_parser_init(sdtl_parser_t* p)
 {
 /* NOTE: for performance reasons these tables might be written
  * statically in C */
