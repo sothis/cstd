@@ -39,6 +39,8 @@ int main(int argc, char* argv[], char* envp[])
 	sdtl_factory_flush(&f);
 	printf("\n\nparsed output:\n");
 	print_entities(&p, 1);
+
+	sdtl_free(&p);
 	return 0;
 #endif
 #if 0
