@@ -6,7 +6,7 @@
 #include <unistd.h>
 
 sdtl_parser_t p;
-sdtl_factory_t f;
+sdtl_factory_t fac;
 
 int write_sdtl_data(sdtl_factory_t* f, unsigned char* data, size_t len)
 {
@@ -15,8 +15,7 @@ int write_sdtl_data(sdtl_factory_t* f, unsigned char* data, size_t len)
 		printf("%c", data[i]);
 
 	if (sdtl_add_input_data(&p, data, len)) {
-		sdtl_free(&p);
-		die("parser error\n");
+		return -1;
 	}
 	return 0;
 }
@@ -25,23 +24,38 @@ int main(int argc, char* argv[], char* envp[])
 {
 #if 1
 	sdtl_init(&p);
-	sdtl_factory_init(&f, &write_sdtl_data);
+	sdtl_factory_init(&fac, &write_sdtl_data);
 
-	sdtl_factory_add_string(&f, "value0", "Hello\\, \"world\"!");
-	sdtl_factory_add_num(&f, "value1", 0);
-	sdtl_factory_add_num(&f, "value2", "35218.1535");
-	sdtl_factory_add_string(&f, "value3", "");
-	sdtl_factory_start_struct(&f, "section");
-	sdtl_factory_add_string(&f, "x", "test");
-	sdtl_factory_add_num(&f, "y", "6");
-	sdtl_factory_end_struct(&f);
+	if (sdtl_factory_add_string(&fac, "value0", "Hello\\, \"world\"!"))
+		goto err_out;
+	if (sdtl_factory_add_num(&fac, "value1", 0))
+		goto err_out;
+	if (sdtl_factory_add_num(&fac, "value2", ".35218.1535"))
+		goto err_out;
+	if (sdtl_factory_add_string(&fac, "value3", ""))
+		goto err_out;
+	if (sdtl_factory_start_struct(&fac, "section"))
+		goto err_out;
+	if (sdtl_factory_add_string(&fac, "x", "test"))
+		goto err_out;
+	if (sdtl_factory_add_num(&fac, "y", "6"))
+		goto err_out;
+	if (sdtl_factory_end_struct(&fac))
+		goto err_out;
 
-	sdtl_factory_flush(&f);
+	if (sdtl_factory_flush(&fac)) {
+		goto err_out;
+	}
+
 	printf("\n\nparsed output:\n");
 	print_entities(&p, 1);
-
 	sdtl_free(&p);
 	return 0;
+
+err_out:
+	sdtl_free(&p);
+	die("parser error");
+	return -1;
 #endif
 #if 0
 	int fd;
