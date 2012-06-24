@@ -130,9 +130,9 @@ static void print_entities_recursive(size_t level, entity_t* first, int w)
 			/* TODO: escape '"' and '\' */
 			if (whitespace) {
 				indent(level);
-				printf(".%s = \"%s\";\n", e->name, e->data);
+				printf(".%s = %s;\n", e->name, e->data);
 			} else
-				printf(".%s=\"%s\";", e->name, e->data);
+				printf(".%s=%s;", e->name, e->data);
 		} else if (e->type == entity_is_numeric) {
 			if (whitespace) {
 				indent(level);
@@ -738,4 +738,195 @@ void sdtl_init(sdtl_parser_t* p)
 
 	_sdtl_ignore_whitespace(p->actions_after_terminate_struct);
 	p->actions_after_terminate_struct[';'] = &action_end_assignment;
+}
+
+void sdtl_factory_init(sdtl_factory_t* f, output_t put_data)
+{
+	memset(f, 0, sizeof(sdtl_factory_t));
+	f->put_data = put_data;
+}
+
+
+int sdtl_factory_flush(sdtl_factory_t* f)
+{
+	int r = 0;
+	size_t len = f->next_byte;
+	if (len) {
+		r = f->put_data(f, f->buffer, len);
+		if (!r)
+			f->next_byte = 0;
+	}
+	return 0;
+}
+
+static int sdtl_add_byte(sdtl_factory_t* f, int c)
+{
+	unsigned char b = c;
+
+	if (f->next_byte == sizeof(f->buffer)) {
+		if (sdtl_factory_flush(f))
+			return -1;
+	}
+
+	f->buffer[f->next_byte] = b;
+	f->next_byte++;
+	return 0;
+}
+
+static int sdtl_add_identifier(sdtl_factory_t* f, const char* id)
+{
+	int r = 0;
+	size_t i, lid;
+
+	if (!id || !*id)
+		return -1;
+
+	r = sdtl_add_byte(f, '.');
+	if (r)
+		return -1;
+
+	lid = strlen(id);
+	for (i = 0; i < lid; ++i) {
+		r = sdtl_add_byte(f, id[i]);
+		if (r)
+			break;
+	}
+	return r;
+}
+
+static int sdtl_add_string(sdtl_factory_t* f, const char* str)
+{
+	int r = 0;
+	size_t i, lstr;
+
+	if (!str || !*str) {
+		return sdtl_add_byte(f, ';');
+	}
+
+	r = sdtl_add_byte(f, '"');
+	if (r)
+		return -1;
+
+	lstr = strlen(str);
+	for (i = 0; i < lstr; ++i) {
+		if (str[i] == '"' || str[i] == '\\') {
+			r = sdtl_add_byte(f, '\\');
+			if (r)
+				break;
+		}
+		r = sdtl_add_byte(f, str[i]);
+		if (r)
+			break;
+	}
+
+	r = sdtl_add_byte(f, '"');
+	if (r)
+		return -1;
+
+	r = sdtl_add_byte(f, ';');
+	if (r)
+		return -1;
+
+	return r;
+}
+
+static int sdtl_add_num(sdtl_factory_t* f, const char* num)
+{
+	int r = 0;
+	size_t i, lnum;
+
+	if (!num || !*num) {
+		return sdtl_add_byte(f, ';');
+	}
+
+	lnum = strlen(num);
+	for (i = 0; i < lnum; ++i) {
+		r = sdtl_add_byte(f, num[i]);
+		if (r)
+			break;
+	}
+
+	r = sdtl_add_byte(f, ';');
+	if (r)
+		return -1;
+
+	return r;
+}
+
+int
+sdtl_factory_add_string(sdtl_factory_t* f, const char* key,
+			const char* value)
+{
+	int r = 0;
+
+	r = sdtl_add_identifier(f, key);
+	if (r)
+		return -1;
+
+	r = sdtl_add_byte(f, '=');
+	if (r)
+		return -1;
+
+	r = sdtl_add_string(f, value);
+	if (r)
+		return -1;
+
+	return r;
+}
+
+int
+sdtl_factory_add_num(sdtl_factory_t* f, const char* key,
+			const char* value)
+{
+	int r = 0;
+
+	r = sdtl_add_identifier(f, key);
+	if (r)
+		return -1;
+
+	r = sdtl_add_byte(f, '=');
+	if (r)
+		return -1;
+
+	r = sdtl_add_num(f, value);
+	if (r)
+		return -1;
+
+	return r;
+}
+
+int
+sdtl_factory_start_struct(sdtl_factory_t* f, const char* key)
+{
+	int r = 0;
+
+	r = sdtl_add_identifier(f, key);
+	if (r)
+		return -1;
+
+	r = sdtl_add_byte(f, '=');
+	if (r)
+		return -1;
+
+	r = sdtl_add_byte(f, '{');
+	if (r)
+		return -1;
+
+	return r;
+}
+
+int
+sdtl_factory_end_struct(sdtl_factory_t* f)
+{
+	int r = 0;
+
+	r = sdtl_add_byte(f, '}');
+	if (r)
+		return -1;
+
+	r = sdtl_add_byte(f, ';');
+	if (r)
+		return -1;
+
+	return r;
 }

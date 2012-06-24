@@ -164,4 +164,38 @@ sdtl_free(sdtl_parser_t* p);
 extern entity_t*
 sdtl_get_entity_abs(sdtl_parser_t* p, const char* path);
 
+
+
+struct sdtl_factory;
+typedef int (*output_t)
+(struct sdtl_factory* f, unsigned char* data, size_t len);
+
+typedef struct sdtl_factory {
+	int64_t	struct_nesting_level;
+	output_t	put_data;
+
+	size_t		next_byte;
+	unsigned char	buffer[4096];
+} sdtl_factory_t;
+
+extern void
+sdtl_factory_init(sdtl_factory_t* f, output_t put_data);
+
+extern int
+sdtl_factory_add_string(sdtl_factory_t* f, const char* key,
+			const char* value);
+
+extern int
+sdtl_factory_add_num(sdtl_factory_t* f, const char* key,
+			const char* value);
+
+extern int
+sdtl_factory_start_struct(sdtl_factory_t* f, const char* key);
+
+extern int
+sdtl_factory_end_struct(sdtl_factory_t* f);
+
+extern int
+sdtl_factory_flush(sdtl_factory_t* f);
+
 #endif /* _CSTD_H_ */
