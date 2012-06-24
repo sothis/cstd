@@ -30,7 +30,7 @@ int main(int argc, char* argv[], char* envp[])
 		goto err_out;
 	if (sdtl_factory_add_num(&fac, "value1", 0))
 		goto err_out;
-	if (sdtl_factory_add_num(&fac, "value2", ".35218.1535"))
+	if (sdtl_factory_add_num(&fac, "value2", "35218.1535"))
 		goto err_out;
 	if (sdtl_factory_add_string(&fac, "value3", ""))
 		goto err_out;

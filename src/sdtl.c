@@ -839,8 +839,32 @@ static int sdtl_add_num(sdtl_factory_t* f, const char* num)
 		return sdtl_add_byte(f, ';');
 	}
 
+	switch (*num) {
+		case '$':
+		case '-':
+		case '0':
+		case '1':
+		case '2':
+		case '3':
+		case '4':
+		case '5':
+		case '6':
+		case '7':
+		case '8':
+		case '9':
+			break;
+		default:
+			return -1;
+	}
+
 	lnum = strlen(num);
 	for (i = 0; i < lnum; ++i) {
+		if (
+			num[i] == ';' ||
+			num[i] == ',' ||
+			num[i] == ']'
+		)
+			return -1;
 		r = sdtl_add_byte(f, num[i]);
 		if (r)
 			break;
