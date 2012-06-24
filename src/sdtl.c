@@ -649,10 +649,12 @@ void sdtl_init(sdtl_parser_t* p)
 	p->actions_after_assignment_start['.'] = 0;
 	/* disallow slash so we can use it as path separator beside the dot */
 	p->actions_after_assignment_start['/'] = 0;
-	p->actions_after_assignment_start['['] = 0;
+	/* this is disallowed in order to support identifiers in arrays */
+	p->actions_after_assignment_start[','] = 0;
 	p->actions_after_assignment_start[']'] = 0;
-	p->actions_after_assignment_start['{'] = 0;
-	p->actions_after_assignment_start['}'] = 0;
+	/* this is disallowed in order to support identifiers as values,
+	 * TODO: define action for this instead of disallowing it */
+	p->actions_after_assignment_start[';'] = 0;
 	p->actions_after_assignment_start['='] = &action_do_assignment;
 
 
@@ -725,13 +727,10 @@ void sdtl_init(sdtl_parser_t* p)
 		p->actions_after_in_number[i] = &action_in_number;
 	_sdtl_ignore_whitespace(p->actions_after_in_number);
 	p->actions_after_in_number[';'] = &action_end_assignment;
+	/* this is disallowed in order to support numbers in arrays */
 	p->actions_after_in_number[','] = 0;
-	p->actions_after_in_number['['] = 0;
 	p->actions_after_in_number[']'] = 0;
-	p->actions_after_in_number['{'] = 0;
-	p->actions_after_in_number['}'] = 0;
 	p->actions_after_in_number['\0'] = 0;
-
 
 	_sdtl_ignore_whitespace(p->actions_after_introduce_struct);
 	p->actions_after_introduce_struct['}'] = &action_terminate_struct;
