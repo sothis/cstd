@@ -13,7 +13,7 @@ int main(int argc, char* argv[], char* envp[])
 	sdtl_parser_t p;
 	unsigned char buf[4096];
 
-	if (argc != 2) {
+	if (argc < 2) {
 		die("expected filename as commandline argument\n");
 	}
 
@@ -34,11 +34,37 @@ int main(int argc, char* argv[], char* envp[])
 	}
 	close(fd);
 
-	print_entities(&p, 1);
 
+#if 0
+	print_entities(&p, 1);
+#endif
+#if 0
 	printf("\nvalid SDTL stream without whitespace:\n");
 	print_entities(&p, 0);
 	printf("\n\n");
+#endif
+
+	if (argc == 3) {
+		entity_t* e;
+		e = sdtl_get_entity_abs(&p, argv[2]);
+		if (!e)
+			die("component not found.\n");
+
+		switch (e->type) {
+			case entity_is_struct:
+				printf("%s: is structure\n",
+					*e->name ? e->name : "<root>");
+				break;
+			case entity_is_string:
+			case entity_is_null:
+			case entity_is_numeric:
+				printf("%s: '%s'\n", e->name, e->data);
+				break;
+			default:
+				die("unknown entity type.\n");
+		}
+	}
+
 
 	sdtl_free(&p);
 

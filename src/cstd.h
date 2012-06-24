@@ -161,5 +161,7 @@ print_entities(sdtl_parser_t* p, int use_whitespace);
 extern void
 sdtl_free(sdtl_parser_t* p);
 
+extern entity_t*
+sdtl_get_entity_abs(sdtl_parser_t* p, const char* path);
 
 #endif /* _CSTD_H_ */

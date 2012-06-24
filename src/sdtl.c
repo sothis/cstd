@@ -12,6 +12,80 @@ static void indent(int level)
 	}
 }
 
+/* Find member of a structure by it's name (without dots). It doesn't
+ * recurse into other structures that may be member of the given parent
+ * structure. */
+static entity_t*
+sdtl_get_entity_flat(entity_t* parent_struct, const char* name)
+{
+	entity_t* e = parent_struct;
+
+	if (!name || !*name || (*name == '.'))
+		return 0;
+
+	while (e) {
+		if (!strcmp(e->name, name))
+			break;
+		e = e->next_entity;
+	}
+	return e;
+}
+
+entity_t* sdtl_get_entity_abs(sdtl_parser_t* p, const char* path)
+{
+	char* abspath, *component, *temp;
+	entity_t* curr_entity = p->root_entity->child_entity;
+	entity_t* e = 0;
+	entity_t* r = 0;
+
+	/* only allow absolute paths (starting with dot) at the moment */
+	if (!path || !*path || (*path != '.'))
+		return 0;
+
+	/* special root member case */
+	if (!strcmp(path, ".")) {
+		return p->root_entity;
+	}
+
+	/* path mustn't end with '.', exception is a single dot for the root
+	 * structure */
+	if (*(strrchr(path, 0)-1) == '.')
+		return 0;
+
+	abspath = xstrdup(path);
+	temp = abspath;
+	while ((component = strtok(temp, "."))) {
+		temp = 0;
+
+		if (r) {
+			if (r->type == entity_is_struct) {
+				/* dive into structure */
+				curr_entity = r->child_entity;
+			} else {
+				/* The last entity was not a structure, but
+				 * we have still components in the path.
+				 * This is exactly ENOTDIR in the context
+				 * of POSIX paths. */
+				r = 0;
+				break;
+			}
+		}
+		e = sdtl_get_entity_flat(curr_entity, component);
+		if (!e) {
+			/* no such structure member in curr_entity */
+			r = 0;
+			break;
+		} else {
+			r = e;
+			continue;
+		}
+
+	}
+
+	free(abspath);
+	return r;
+}
+
 static void print_entities_recursive(size_t level, entity_t* first, int w)
 {
 	entity_t* e = first;
@@ -334,6 +408,18 @@ static int action_end_assignment(sdtl_parser_t* p, int byte)
 	return action_on_value_end(p);
 }
 
+static int action_start_symbolic_link(sdtl_parser_t* p, int byte)
+{
+#if 0
+	p->has_empty_value = 0;
+	p->state_lvl0 = lvl0_introduce_binary_stream;
+	return 0;
+#else
+	return 1;
+#endif
+}
+
+
 static int action_introduce_binary_stream(sdtl_parser_t* p, int byte)
 {
 	p->has_empty_value = 0;
@@ -561,6 +647,8 @@ void sdtl_init(sdtl_parser_t* p)
 	_sdtl_ignore_whitespace(p->actions_after_assignment_start);
 	p->actions_after_assignment_start[0x00] = 0;
 	p->actions_after_assignment_start['.'] = 0;
+	/* disallow slash so we can use it as path separator beside the dot */
+	p->actions_after_assignment_start['/'] = 0;
 	p->actions_after_assignment_start['['] = 0;
 	p->actions_after_assignment_start[']'] = 0;
 	p->actions_after_assignment_start['{'] = 0;
@@ -578,6 +666,7 @@ void sdtl_init(sdtl_parser_t* p)
 	p->actions_after_assignment_op['\0'] = &action_introduce_binary_stream;
 	p->actions_after_assignment_op['"'] = &action_introduce_string;
 	p->actions_after_assignment_op['{'] = &action_introduce_struct;
+	p->actions_after_assignment_op['.'] = &action_start_symbolic_link;
 	/* in order to support several num formats, add start byte here */
 	p->actions_after_assignment_op['-'] = &action_in_number;
 	p->actions_after_assignment_op['$'] = &action_in_number;
