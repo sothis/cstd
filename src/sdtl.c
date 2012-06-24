@@ -204,6 +204,24 @@ static void free_entities(entity_t* first)
 	}
 }
 
+int sdtl_parser_reset(sdtl_parser_t* p)
+{
+	if (!p->root_entity)
+		return -1;
+	if (p->root_entity->struct_is_open)
+		return -1;
+
+	free_entities(p->root_entity);
+	if (p->current_multibyte_token) {
+		free(p->current_multibyte_token);
+		p->current_multibyte_token = 0;
+	}
+	p->root_entity = p->curr_entity = 0;
+	p->stream_started = 0;
+	p->stream_started = 0;
+	return 0;
+}
+
 void sdtl_parser_free(sdtl_parser_t* p)
 {
 	free_entities(p->root_entity);
@@ -212,6 +230,7 @@ void sdtl_parser_free(sdtl_parser_t* p)
 		p->current_multibyte_token = 0;
 	}
 	p->root_entity = p->curr_entity = 0;
+	p->stream_started = 0;
 }
 
 /* simple fixed sized stack */

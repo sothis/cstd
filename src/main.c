@@ -4,16 +4,21 @@
 #include <stdlib.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <inttypes.h>
 
 sdtl_parser_t p;
 sdtl_factory_t fac;
+uint64_t total_bytes = 0;
 
-int write_sdtl_data(sdtl_factory_t* f, unsigned char* data, size_t len)
+static int
+new_sdtl_stream_data(sdtl_factory_t* f, unsigned char* data, size_t len)
 {
+#if 0
 	size_t i = 0;
 	for (i = 0; i < len; ++i)
 		printf("%c", data[i]);
-
+#endif
+	total_bytes += len;
 	if (sdtl_parser_add_data(&p, data, len)) {
 		return -1;
 	}
@@ -23,49 +28,59 @@ int write_sdtl_data(sdtl_factory_t* f, unsigned char* data, size_t len)
 int main(int argc, char* argv[], char* envp[])
 {
 #if 1
+	sdtl_factory_init(&fac, &new_sdtl_stream_data);
+
 	sdtl_parser_init(&p);
-	sdtl_factory_init(&fac, &write_sdtl_data);
 
-	if (sdtl_factory_start_struct(&fac, "main"))
-		goto err_out;
-	if (sdtl_factory_add_num(&fac, "main", "42"))
-		goto err_out;
-	if (sdtl_factory_end_struct(&fac))
-		goto err_out;
-	if (sdtl_factory_add_string(&fac, "value0", "Hello\\, \"world\"!"))
-		goto err_out;
-	if (sdtl_factory_start_struct(&fac, "empty_struct"))
-		goto err_out;
-	if (sdtl_factory_end_struct(&fac))
-		goto err_out;
-	if (sdtl_factory_add_num(&fac, "value1", 0))
-		goto err_out;
-	if (sdtl_factory_add_num(&fac, "value2", "35218.1535"))
-		goto err_out;
-	if (sdtl_factory_add_string(&fac, "value3", ""))
-		goto err_out;
-	if (sdtl_factory_start_struct(&fac, "section"))
-		goto err_out;
-	if (sdtl_factory_add_string(&fac, "x", "test"))
-		goto err_out;
-	if (sdtl_factory_start_struct(&fac, "subsection"))
-		goto err_out;
-	if (sdtl_factory_add_num(&fac, "z", "12"))
-		goto err_out;
-	if (sdtl_factory_end_struct(&fac))
-		goto err_out;
-	if (sdtl_factory_add_num(&fac, "y", "6"))
-		goto err_out;
-	if (sdtl_factory_end_struct(&fac))
-		goto err_out;
+	size_t i;
 
-	if (sdtl_factory_flush(&fac)) {
-		goto err_out;
+	for (i = 0; i < 71580; ++i) {
+	//while (1) {
+		if (sdtl_factory_start_struct(&fac, "main"))
+			goto err_out;
+		if (sdtl_factory_add_num(&fac, "main", "42"))
+			goto err_out;
+		if (sdtl_factory_end_struct(&fac))
+			goto err_out;
+		if (sdtl_factory_add_string(&fac, "value0", "Hello\\, \"world\"!"))
+			goto err_out;
+		if (sdtl_factory_start_struct(&fac, "empty_struct"))
+			goto err_out;
+		if (sdtl_factory_end_struct(&fac))
+			goto err_out;
+		if (sdtl_factory_add_num(&fac, "value1", 0))
+			goto err_out;
+		if (sdtl_factory_add_num(&fac, "value2", "35218.1535"))
+			goto err_out;
+		if (sdtl_factory_add_string(&fac, "value3", ""))
+			goto err_out;
+		if (sdtl_factory_start_struct(&fac, "section"))
+			goto err_out;
+		if (sdtl_factory_add_string(&fac, "x", "test"))
+			goto err_out;
+		if (sdtl_factory_start_struct(&fac, "subsection"))
+			goto err_out;
+		if (sdtl_factory_add_num(&fac, "z", "12"))
+			goto err_out;
+		if (sdtl_factory_end_struct(&fac))
+			goto err_out;
+		if (sdtl_factory_add_num(&fac, "y", "6"))
+			goto err_out;
+		if (sdtl_factory_end_struct(&fac))
+			goto err_out;
+
+		if (sdtl_factory_flush(&fac)) {
+			goto err_out;
+		}
+
+	#if 0
+		printf("\nparsed output:\n");
+		sdtl_parser_print(&p, 1);
+	#endif
+		if (sdtl_parser_reset(&p))
+			goto err_out;
 	}
-
-	printf("\n\nparsed output:\n");
-	sdtl_parser_print(&p, 1);
-
+#if 0
 	if (argc == 3) {
 		const char* data;
 		data = sdtl_parser_get_data(&p, argv[2]);
@@ -73,7 +88,9 @@ int main(int argc, char* argv[], char* envp[])
 			die("component not found, or data not set\n");
 		printf("%s: '%s'\n", argv[2], data);
 	}
+#endif
 
+	printf("processed: %" PRIu64 " bytes\n", total_bytes);
 	sdtl_parser_free(&p);
 	return 0;
 

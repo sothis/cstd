@@ -155,6 +155,9 @@ sdtl_parser_init(sdtl_parser_t* p);
 extern void
 sdtl_parser_free(sdtl_parser_t* p);
 
+extern int
+sdtl_parser_reset(sdtl_parser_t* p);
+
 extern void
 sdtl_parser_print(sdtl_parser_t* p, int use_whitespace);
 
