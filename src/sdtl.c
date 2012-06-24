@@ -600,6 +600,9 @@ sdtl_add_input_data(sdtl_parser_t* p, unsigned char* data, int32_t len)
 	if (!len)
 		return 0;
 
+	/* TODO: support size prefixed random data, which is skipped
+	 * here in order to defend against known plain text attacks if
+	 * the stream was transported over an encrypted serial line */
 	for (idx = 0; idx < len; ++idx) {
 		if (sdtl_parse(p, data[idx])) {
 			return -1;
