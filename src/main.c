@@ -26,6 +26,12 @@ int main(int argc, char* argv[], char* envp[])
 	sdtl_init(&p);
 	sdtl_factory_init(&fac, &write_sdtl_data);
 
+	if (sdtl_factory_start_struct(&fac, "main"))
+		goto err_out;
+	if (sdtl_factory_add_num(&fac, "port", "42"))
+		goto err_out;
+	if (sdtl_factory_end_struct(&fac))
+		goto err_out;
 	if (sdtl_factory_add_string(&fac, "value0", "Hello\\, \"world\"!"))
 		goto err_out;
 	if (sdtl_factory_start_struct(&fac, "empty_struct"))
@@ -41,6 +47,12 @@ int main(int argc, char* argv[], char* envp[])
 	if (sdtl_factory_start_struct(&fac, "section"))
 		goto err_out;
 	if (sdtl_factory_add_string(&fac, "x", "test"))
+		goto err_out;
+	if (sdtl_factory_start_struct(&fac, "subsection"))
+		goto err_out;
+	if (sdtl_factory_add_num(&fac, "z", "12"))
+		goto err_out;
+	if (sdtl_factory_end_struct(&fac))
 		goto err_out;
 	if (sdtl_factory_add_num(&fac, "y", "6"))
 		goto err_out;

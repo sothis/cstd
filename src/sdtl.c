@@ -86,6 +86,30 @@ entity_t* sdtl_get_entity_abs(sdtl_parser_t* p, const char* path)
 	return r;
 }
 
+static void
+print_escaped_string(size_t level, const char* name, const char* str, int w)
+{
+	size_t i;
+	size_t l = strlen(str);
+	if (w) {
+		indent(level);
+		printf(".%s = \"", name);
+	} else
+		printf(".%s=\"", name);
+
+	for (i = 0; i < l; ++i) {
+		if (str[i] == '"' || str[i] == '\\') {
+			printf("%c", '\\');
+		}
+		printf("%c", str[i]);
+	}
+
+	if (w)
+		printf("\";\n");
+	else
+		printf("\";");
+}
+
 static void print_entities_recursive(size_t level, entity_t* first, int w)
 {
 	entity_t* e = first;
@@ -127,12 +151,8 @@ static void print_entities_recursive(size_t level, entity_t* first, int w)
 			} else
 				printf(".%s=;", e->name);
 		} else if (e->type == entity_is_string) {
-			/* TODO: escape '"' and '\' */
-			if (whitespace) {
-				indent(level);
-				printf(".%s = %s;\n", e->name, e->data);
-			} else
-				printf(".%s=%s;", e->name, e->data);
+			print_escaped_string(level, e->name, e->data,
+				whitespace);
 		} else if (e->type == entity_is_numeric) {
 			if (whitespace) {
 				indent(level);
