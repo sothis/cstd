@@ -386,8 +386,6 @@ static int action_ignore_whitespace(sdtl_parser_t* p, int byte)
 
 static int action_in_identifier(sdtl_parser_t* p, int byte)
 {
-	char c[2] = { byte, 0x00 };
-
 	if (!p->first_byte_of_multibyte_token) {
 		p->first_byte_of_multibyte_token = 1;
 		p->current_type = entity_is_identifier;
@@ -397,11 +395,7 @@ static int action_in_identifier(sdtl_parser_t* p, int byte)
 
 	if (str_buffered_append_byte(&p->str_buffer, byte))
 		return -1;
-#if 0
-	/* NOTE: this is slow; a buffer should be used here, lowering the
-	 * amount of realloc's */
-	p->current_multibyte_token = str_append(p->current_multibyte_token, c);
-#endif
+
 	p->has_empty_identifier = 0;
 	p->state_lvl0 = lvl0_assignment_start;
 	return 0;
@@ -511,8 +505,6 @@ static int action_introduce_string(sdtl_parser_t* p, int byte)
 
 static int action_in_string(sdtl_parser_t* p, int byte)
 {
-	char c[2] = { byte, 0x00 };
-
 	if (!p->first_byte_of_multibyte_token) {
 		p->has_empty_value = 0;
 		p->first_byte_of_multibyte_token = 1;
@@ -523,12 +515,6 @@ static int action_in_string(sdtl_parser_t* p, int byte)
 
 	if (str_buffered_append_byte(&p->str_buffer, byte))
 		return -1;
-
-#if 0
-	/* NOTE: this is slow; a buffer should be used here, lowering the
-	 * amount of realloc's */
-	p->current_multibyte_token = str_append(p->current_multibyte_token, c);
-#endif
 
 	p->state_lvl0 = lvl0_in_string;
 	return 0;
@@ -562,12 +548,6 @@ static int action_replace_escape(sdtl_parser_t* p, int byte)
 	if (str_buffered_append_byte(&p->str_buffer, byte))
 		return -1;
 
-#if 0
-	/* NOTE: this is slow; a buffer should be used here, lowering the
-	 * amount of realloc's */
-	p->current_multibyte_token = str_append(p->current_multibyte_token, c);
-#endif
-
 	p->state_lvl0 = lvl0_in_string;
 	return 0;
 }
@@ -586,8 +566,6 @@ static int action_terminate_string(sdtl_parser_t* p, int byte)
 
 static int action_in_number(sdtl_parser_t* p, int byte)
 {
-	char c[2] = { byte, 0x00 };
-
 	if (!p->first_byte_of_multibyte_token) {
 		p->has_empty_value = 0;
 		p->first_byte_of_multibyte_token = 1;
@@ -599,11 +577,6 @@ static int action_in_number(sdtl_parser_t* p, int byte)
 	if (str_buffered_append_byte(&p->str_buffer, byte))
 		return -1;
 
-#if 0
-	/* NOTE: this is slow; a buffer should be used here, lowering the
-	 * amount of realloc's */
-	p->current_multibyte_token = str_append(p->current_multibyte_token, c);
-#endif
 	p->state_lvl0 = lvl0_in_number;
 	return 0;
 }
