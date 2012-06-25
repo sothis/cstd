@@ -4,6 +4,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#define STR_BUFSIZE	64
+
 static void indent(int level)
 {
 	while (level) {
@@ -389,12 +391,17 @@ static int action_in_identifier(sdtl_parser_t* p, int byte)
 	if (!p->first_byte_of_multibyte_token) {
 		p->first_byte_of_multibyte_token = 1;
 		p->current_type = entity_is_identifier;
+		if (str_buffered_init(&p->str_buffer, STR_BUFSIZE))
+			return -1;
 	}
 
+	if (str_buffered_append_byte(&p->str_buffer, byte))
+		return -1;
+#if 0
 	/* NOTE: this is slow; a buffer should be used here, lowering the
 	 * amount of realloc's */
 	p->current_multibyte_token = str_append(p->current_multibyte_token, c);
-
+#endif
 	p->has_empty_identifier = 0;
 	p->state_lvl0 = lvl0_assignment_start;
 	return 0;
@@ -410,6 +417,9 @@ static int action_start_assignment(sdtl_parser_t* p, int byte)
 static int end_multibyte_action(sdtl_parser_t* p)
 {
 	int r = 0;
+
+	p->current_multibyte_token = str_buffered_finalize(&p->str_buffer);
+
 	switch (p->current_type) {
 		case entity_is_identifier:
 			r = action_on_identifier(p, p->current_multibyte_token);
@@ -464,7 +474,7 @@ static int action_start_symbolic_link(sdtl_parser_t* p, int byte)
 	p->state_lvl0 = lvl0_introduce_binary_stream;
 	return 0;
 #else
-	return 1;
+	return -1;
 #endif
 }
 
@@ -507,47 +517,57 @@ static int action_in_string(sdtl_parser_t* p, int byte)
 		p->has_empty_value = 0;
 		p->first_byte_of_multibyte_token = 1;
 		p->current_type = entity_is_string;
+		if (str_buffered_init(&p->str_buffer, STR_BUFSIZE))
+			return -1;
 	}
 
+	if (str_buffered_append_byte(&p->str_buffer, byte))
+		return -1;
+
+#if 0
 	/* NOTE: this is slow; a buffer should be used here, lowering the
 	 * amount of realloc's */
 	p->current_multibyte_token = str_append(p->current_multibyte_token, c);
+#endif
+
 	p->state_lvl0 = lvl0_in_string;
 	return 0;
 }
 
 static int action_replace_escape(sdtl_parser_t* p, int byte)
 {
-	char b;
-	char c[2] = { 0x00, 0x00 };
-
 	switch (byte) {
 		case 'b':
-			b = '\b';
+			byte = '\b';
 			break;
 		case 'f':
-			b = '\f';
+			byte = '\f';
 			break;
 		case 'n':
-			b = '\n';
+			byte = '\n';
 			break;
 		case 'r':
-			b = '\r';
+			byte = '\r';
 			break;
 		case 't':
-			b = '\t';
+			byte = '\t';
 			break;
 		case 'v':
-			b = '\v';
+			byte = '\v';
 			break;
 		default:
 			return -1;
 	}
-	c[0] = b;
 
+	if (str_buffered_append_byte(&p->str_buffer, byte))
+		return -1;
+
+#if 0
 	/* NOTE: this is slow; a buffer should be used here, lowering the
 	 * amount of realloc's */
 	p->current_multibyte_token = str_append(p->current_multibyte_token, c);
+#endif
+
 	p->state_lvl0 = lvl0_in_string;
 	return 0;
 }
@@ -572,11 +592,18 @@ static int action_in_number(sdtl_parser_t* p, int byte)
 		p->has_empty_value = 0;
 		p->first_byte_of_multibyte_token = 1;
 		p->current_type = entity_is_numeric;
+		if (str_buffered_init(&p->str_buffer, STR_BUFSIZE))
+			return -1;
 	}
 
+	if (str_buffered_append_byte(&p->str_buffer, byte))
+		return -1;
+
+#if 0
 	/* NOTE: this is slow; a buffer should be used here, lowering the
 	 * amount of realloc's */
 	p->current_multibyte_token = str_append(p->current_multibyte_token, c);
+#endif
 	p->state_lvl0 = lvl0_in_number;
 	return 0;
 }
@@ -811,14 +838,11 @@ int sdtl_factory_flush(sdtl_factory_t* f)
 
 static int sdtl_add_byte(sdtl_factory_t* f, int c)
 {
-	unsigned char b = c;
-
 	if (f->next_byte == sizeof(f->buffer)) {
 		if (sdtl_factory_flush(f))
 			return -1;
 	}
-
-	f->buffer[f->next_byte] = b;
+	f->buffer[f->next_byte] = c;
 	f->next_byte++;
 	return 0;
 }

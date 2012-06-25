@@ -45,6 +45,20 @@ extern void die(char* format, ...);
 /* pdie() is like die(), except that it prints out errno and strerror() */
 extern void pdie(char* format, ...);
 
+
+
+typedef struct buffered_string {
+	size_t	threshold;
+	char*	mem;
+
+	size_t	length;
+	size_t	allocated;
+} buffered_string_t;
+
+extern int str_buffered_init(buffered_string_t* str, size_t alloc_threshold);
+extern int str_buffered_append_byte(buffered_string_t* str, char byte);
+extern char* str_buffered_finalize(buffered_string_t* str);
+
 extern char* str_append(char* string1, const char* string2);
 extern char* str_prepend(char* string1, const char* string2);
 
@@ -128,6 +142,7 @@ typedef struct sdtl_parser {
 	int		stream_started;
 	entity_type_t	current_type;
 	char*		current_multibyte_token;
+	buffered_string_t str_buffer;
 
 	/* this limits the maximum struct nesting level */
 	entity_t*	nesting_stack[256];

@@ -6,6 +6,7 @@
 #include <unistd.h>
 #include <inttypes.h>
 
+#if 1
 sdtl_parser_t p;
 sdtl_factory_t fac;
 uint64_t total_bytes = 0;
@@ -24,9 +25,24 @@ new_sdtl_stream_data(sdtl_factory_t* f, unsigned char* data, size_t len)
 	}
 	return 0;
 }
+#endif
+
+#include <string.h>
 
 int main(int argc, char* argv[], char* envp[])
 {
+#if 0
+	buffered_string_t s;
+	char* m;
+
+	str_buffered_init(&s, 4096);
+	str_buffered_append_byte(&s, '1');
+	str_buffered_append_byte(&s, '2');
+	m = str_buffered_finalize(&s);
+
+	printf("m: '%s' (%lu/%lu)\n", m, strlen(m), s.length);
+	return 0;
+#endif
 #if 1
 	sdtl_factory_init(&fac, &new_sdtl_stream_data);
 
