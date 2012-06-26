@@ -37,8 +37,10 @@ int main(int argc, char* argv[], char* envp[])
 	if (argc != 2)
 		return -1;
 
-	if (sdtl_parser_init_and_parse_file(&p, argv[1]))
+	if (sdtl_parser_init_and_parse_file(&p, argv[1])) {
+		printf("malformed sdtl file\n");
 		return -1;
+	}
 
 	const char* port = sdtl_parser_get_data(&p, ".network.port");
 	const char* ifce = sdtl_parser_get_data(&p, ".network.bind-to");
