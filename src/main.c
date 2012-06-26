@@ -32,6 +32,26 @@ new_sdtl_stream_data(sdtl_factory_t* f, unsigned char* data, size_t len)
 int main(int argc, char* argv[], char* envp[])
 {
 #if 1
+	sdtl_parser_t p;
+
+	if (argc != 2)
+		return -1;
+
+	if (sdtl_parser_init_and_parse_file(&p, argv[1]))
+		return -1;
+
+	const char* port = sdtl_parser_get_data(&p, ".network.port");
+	const char* ifce = sdtl_parser_get_data(&p, ".network.bind-to");
+	if (!port || !ifce) {
+		printf("invalid configuration file\n");
+	} else
+		printf("bind to: %s:%s\n", ifce, port);
+
+	sdtl_parser_free(&p);
+
+	return 0;
+#endif
+#if 0
 	int r;
 
 	if (argc != 2)

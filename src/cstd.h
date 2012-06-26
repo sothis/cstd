@@ -215,7 +215,9 @@ sdtl_factory_end_struct(sdtl_factory_t* f);
 extern int
 sdtl_factory_flush(sdtl_factory_t* f);
 
-
+/* SDTL high level functions */
+extern int
+sdtl_parser_init_and_parse_file(sdtl_parser_t* p, const char* file);
 
 
 

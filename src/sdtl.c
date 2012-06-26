@@ -3,6 +3,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <fcntl.h>
+#include <unistd.h>
 
 #define STR_BUFSIZE	64
 
@@ -206,24 +208,6 @@ static void free_entities(entity_t* first)
 	}
 }
 
-int sdtl_parser_reset(sdtl_parser_t* p)
-{
-	if (!p->root_entity)
-		return -1;
-	if (p->root_entity->struct_is_open)
-		return -1;
-
-	free_entities(p->root_entity);
-	if (p->current_multibyte_token) {
-		free(p->current_multibyte_token);
-		p->current_multibyte_token = 0;
-	}
-	p->root_entity = p->curr_entity = 0;
-	p->stream_started = 0;
-	p->stream_started = 0;
-	return 0;
-}
-
 void sdtl_parser_free(sdtl_parser_t* p)
 {
 	free_entities(p->root_entity);
@@ -233,6 +217,17 @@ void sdtl_parser_free(sdtl_parser_t* p)
 	}
 	p->root_entity = p->curr_entity = 0;
 	p->stream_started = 0;
+}
+
+int sdtl_parser_reset(sdtl_parser_t* p)
+{
+	if (!p->root_entity)
+		return -1;
+	if (p->root_entity->struct_is_open)
+		return -1;
+
+	sdtl_parser_free(p);
+	return 0;
 }
 
 /* simple fixed sized stack */
@@ -1039,4 +1034,33 @@ sdtl_factory_end_struct(sdtl_factory_t* f)
 		return -1;
 
 	return r;
+}
+
+int
+sdtl_parser_init_and_parse_file(sdtl_parser_t* p, const char* file)
+{
+	int fd;
+	ssize_t r;
+	unsigned char buf[4096];
+
+	sdtl_parser_init(p);
+	fd = open(file, O_RDONLY | O_NOATIME);
+	if (fd < 0) {
+		return -1;
+	}
+
+	while ((r = read(fd, buf, 4096)) > 0) {
+		if (sdtl_parser_add_data(p, buf, r)) {
+			goto err_out;
+		}
+	}
+	if (r < 0) {
+		goto err_out;
+	}
+	close(fd);
+	return 0;
+err_out:
+	close(fd);
+	sdtl_parser_free(p);
+	return -1;
 }
