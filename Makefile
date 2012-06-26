@@ -103,6 +103,7 @@ INCLUDES	+= -I./src
 SRC		+= ./src/version.c
 .PHONY: ./src/version.c
 
+SRC		+= ./src/fs.c
 SRC		+= ./src/mem.c
 SRC		+= ./src/path.c
 SRC		+= ./src/proc.c

@@ -215,4 +215,17 @@ sdtl_factory_end_struct(sdtl_factory_t* f);
 extern int
 sdtl_factory_flush(sdtl_factory_t* f);
 
+
+
+
+
+
+
+
+
+
+extern int fs_delete_deep(const char* directory);
+
+
+
 #endif /* _CSTD_H_ */

@@ -6,7 +6,7 @@
 #include <unistd.h>
 #include <inttypes.h>
 
-#if 1
+#if 0
 sdtl_parser_t p;
 sdtl_factory_t fac;
 uint64_t total_bytes = 0;
@@ -31,6 +31,18 @@ new_sdtl_stream_data(sdtl_factory_t* f, unsigned char* data, size_t len)
 
 int main(int argc, char* argv[], char* envp[])
 {
+#if 1
+	int r;
+
+	if (argc != 2)
+		return -1;
+
+	r = fs_delete_deep(argv[1]);
+	if (r)
+		pdie("fs_delete_deep() on %s", argv[1]);
+
+	return 0;
+#endif
 #if 0
 	buffered_string_t s;
 	char* m;
@@ -43,7 +55,7 @@ int main(int argc, char* argv[], char* envp[])
 	printf("m: '%s' (%lu/%lu)\n", m, strlen(m), s.length);
 	return 0;
 #endif
-#if 1
+#if 0
 	sdtl_factory_init(&fac, &new_sdtl_stream_data);
 
 	sdtl_parser_init(&p);
