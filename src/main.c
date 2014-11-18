@@ -10,6 +10,6 @@
 
 int main(int argc, char* argv[], char* envp[])
 {
-	file_create(".", "test", 0400);
+	file_create("test", 0, 00644);
 	return 0;
 }

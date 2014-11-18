@@ -96,6 +96,6 @@ extern int proc_fork_and_wait(proc_t* args, int redirect);
 extern int fs_delete_deep(const char* directory);
 
 
-extern int file_create(const char* path, const char* name, mode_t mode);
+extern int file_create(const char* name, const char* parent_dir, mode_t mode);
 
 #endif /* _CSTD_H_ */
