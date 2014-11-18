@@ -109,6 +109,7 @@ SRC		+= ./src/path.c
 SRC		+= ./src/proc.c
 SRC		+= ./src/string.c
 SRC		+= ./src/syslog.c
+SRC		+= ./src/file.c
 
 SRC		+= ./src/main.c
 
