@@ -20,7 +20,6 @@ struct file_t {
 
 struct file_t* last_created_file = 0;
 
-static int
 
 int file_create(const char* name, const char* parent_dir, mode_t mode)
 {
