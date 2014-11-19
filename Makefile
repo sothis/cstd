@@ -98,7 +98,10 @@ BUILDDIR	:= $(OUTDIR)/$(TOOLCHAIN)_$(CONF)
 
 ################################################################################
 
+LIBRARIES	+= -lpthread
+
 INCLUDES	+= -I./src
+INCLUDES	+= -I./src/mp
 
 SRC		+= ./src/version.c
 .PHONY: ./src/version.c
@@ -110,6 +113,13 @@ SRC		+= ./src/proc.c
 SRC		+= ./src/string.c
 SRC		+= ./src/syslog.c
 SRC		+= ./src/file.c
+
+SRC		+= ./src/mp/cond.c
+SRC		+= ./src/mp/mutex.c
+SRC		+= ./src/mp/queue.c
+SRC		+= ./src/mp/thread.c
+SRC		+= ./src/mp/workerpool.c
+
 
 SRC		+= ./src/main.c
 

@@ -10,15 +10,26 @@
 
 int main(int argc, char* argv[], char* envp[])
 {
-	int fd = -1;
+	int fd0, fd1, fd2, fd3;
 
-	fd = file_create("testfile", 0, 00644);
-	if (fd < 0)
-		pdie("file_create()");
-	if (write(fd, "hello\n", 6) != 6)
-		pdie("write()");
-	if (file_sync_and_close(fd))
-		pdie("file_sync_and_close()");
+	fd0 = file_create("testfile0", 0, 00644);
+	write(fd0, "hello0\n", 7);
+
+	fd1 = file_create("testfile1", 0, 00644);
+	write(fd1, "hello1\n", 7);
+
+	fd2 = file_create("testfile2", 0, 00644);
+	write(fd2, "hello2\n", 7);
+
+	fd3 = file_create("testfile3", 0, 00644);
+	write(fd3, "hello3\n", 7);
+
+
+	file_sync_and_close(fd2);
+	file_sync_and_close(fd0);
+	file_sync_and_close(fd3);
+	file_sync_and_close(fd1);
+
 
 	return 0;
 }

@@ -1,12 +1,13 @@
 #include "cstd.h"
 
-#include <sys/stat.h> // umask()
-
 #include <stdlib.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <sys/stat.h>
+#include <stdio.h>
 
-	#include <stdio.h>
+#include "mutex.h"
+
 
 struct file_t {
 	int		fd;
@@ -16,9 +17,50 @@ struct file_t {
 	mode_t		mode;
 
 	struct file_t*	next;
+	struct file_t*	prev;
 };
 
-static struct file_t* last_created_file = 0;
+struct filelist_t {
+	size_t		nopen_files;
+	struct file_t*	first;
+	struct file_t*	last;
+};
+
+static struct filelist_t files = {
+	.nopen_files	= 0,
+	.first		= 0,
+	.last		= 0
+};
+
+static void _file_add_to_list(struct file_t* file)
+{
+	if (!files.last) {
+		files.first = files.last = file;
+	} else {
+		files.last->next = file;
+		file->prev = files.last;
+		files.last = file;
+	}
+	files.nopen_files++;
+}
+
+static void _file_remove_from_list(struct file_t* file)
+{
+	if(file == files.first && file == files.last) {
+		files.first = 0;
+		files.last = 0;
+	} else if(file == files.first) {
+		files.first = file->next;
+		files.first->prev = 0;
+	} else if (file == files.last) {
+		files.last = file->prev;
+		files.last->next = 0;
+	} else {
+		file->next->prev = file->prev;
+		file->prev->next = file->next;
+	}
+	files.nopen_files--;
+}
 
 static int _file_check_name(const char* name)
 {
@@ -37,38 +79,36 @@ static int _file_check_name(const char* name)
 	return 0;
 }
 
-static struct file_t* _file_traverse_fd(int fd, struct file_t** previous)
+static struct file_t* _file_get_by_fd(int fd)
 {
-	struct file_t* res = 0;
+	struct file_t* res = files.first;
 
-	res = last_created_file;
 	while (res) {
 		if (res->fd == fd)
 			break;
-		if (previous)
-			*previous = res;
 		res = res->next;
 	}
-
 	return res;
 }
 
 int file_create(const char* name, const char* parent_dir, mode_t mode)
 {
+	int r = -1;
 	struct file_t* file = 0;
 
-	/* filename mustn't be longer than 254 bytes (so that the hidden
-	 * temporary filename isn't longer than 255 bytes) and must not
-	 * contain slashes */
+	/* the filename mustn't contain slashes and mustn't be longer than
+	 * 254 bytes (excluding the terminating zero byte) so that the filename
+	 * of the hidden temporary file isn't longer than 255 bytes,
+	 * which fits on most modern filesystems */
 	if (_file_check_name(name))
-		return -1;
+		goto err;
 
 	file = xcalloc(1, sizeof(struct file_t));
 	file->path = path_resolve_const(parent_dir ? parent_dir : ".");
 
 	/* path doesn't exist */
 	if (!file->path)
-		pdie("path_resolve_const(\"%s\")", parent_dir);
+		goto err;
 
 	file->name = xstrdup(file->path);
 	file->name = str_append(file->name, "/");
@@ -82,12 +122,23 @@ int file_create(const char* name, const char* parent_dir, mode_t mode)
 
 	file->fd = open(file->tmp_name, O_RDWR|O_CREAT|O_EXCL|O_SYNC, 0);
 	if (file->fd < 0)
-		pdie("open()");
+		goto err;
 
-	file->next = last_created_file;
-	last_created_file = file;
-
-	return file->fd;
+	_file_add_to_list(file);
+	r = file->fd;
+	goto out;
+err:
+	if (file) {
+		if (file->path)
+			free(file->path);
+		if (file->name)
+			free(file->name);
+		if (file->tmp_name)
+			free(file->tmp_name);
+		free(file);
+	}
+out:
+	return r;
 }
 
 
@@ -95,16 +146,15 @@ int file_sync_and_close(int fd)
 {
 	int r = 0;
 	struct file_t* file = 0;
-	struct file_t* previous = 0;
 
-	file = _file_traverse_fd(fd, &previous);
+	file = _file_get_by_fd(fd);
 	if (!file) {
-		/* descriptor wasn't created with file_create(), just close */
-		return close(fd);
+		/* log this */
+		/* fd was not created by file_create() */
+		return -1;
 	}
 
 	if (fsync(fd)) {
-		/* log this */
 		r = -1;
 		goto out;
 	}
@@ -130,7 +180,7 @@ out:
 		r = -1;
 	}
 
-	/* remove file context from linked list here */
+	_file_remove_from_list(file);
 
 	free(file->path);
 	free(file->name);
