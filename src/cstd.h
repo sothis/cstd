@@ -97,5 +97,6 @@ extern int fs_delete_deep(const char* directory);
 
 
 extern int file_create(const char* name, const char* parent_dir, mode_t mode);
+extern int file_sync_and_close(int fd);
 
 #endif /* _CSTD_H_ */
