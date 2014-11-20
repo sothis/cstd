@@ -197,7 +197,7 @@ void file_sync_and_close_all(void)
 	struct file_t* next = 0;
 
 	while (cur) {
-		/* ignoring errors file_sync_and_close() in for now */
+		/* ignoring errors in file_sync_and_close() for now */
 		next = cur->next;
 		file_sync_and_close(cur->fd);
 		cur = next;
