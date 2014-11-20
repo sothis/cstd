@@ -91,7 +91,8 @@ static struct file_t* _file_get_by_fd(int fd)
 	return res;
 }
 
-int file_create(const char* name, const char* parent_dir, mode_t mode)
+int file_create_rw_with_hidden_tmp
+(const char* name, const char* parent_dir, mode_t mode)
 {
 	int r = -1;
 	struct file_t* file = 0;
@@ -193,10 +194,12 @@ out:
 void file_sync_and_close_all(void)
 {
 	struct file_t* cur = files.first;
+	struct file_t* next = 0;
 
 	while (cur) {
 		/* ignoring errors file_sync_and_close() in for now */
+		next = cur->next;
 		file_sync_and_close(cur->fd);
-		cur = cur->next;
+		cur = next;
 	}
 }
