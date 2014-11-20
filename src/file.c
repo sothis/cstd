@@ -189,3 +189,14 @@ out:
 
 	return r;
 }
+
+void file_sync_and_close_all(void)
+{
+	struct file_t* cur = files.first;
+
+	while (cur) {
+		/* ignoring errors file_sync_and_close() in for now */
+		file_sync_and_close(cur->fd);
+		cur = cur->next;
+	}
+}
