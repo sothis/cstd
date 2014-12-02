@@ -102,6 +102,7 @@ LIBRARIES	+= -lpthread
 
 INCLUDES	+= -I./src
 INCLUDES	+= -I./src/mp
+INCLUDES	+= -I./src/socket
 
 SRC		+= ./src/version.c
 .PHONY: ./src/version.c
@@ -119,6 +120,8 @@ SRC		+= ./src/mp/mutex.c
 SRC		+= ./src/mp/queue.c
 SRC		+= ./src/mp/thread.c
 SRC		+= ./src/mp/workerpool.c
+
+SRC		+= ./src/socket/sio.c
 
 
 SRC		+= ./src/main.c
