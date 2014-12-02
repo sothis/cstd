@@ -124,7 +124,7 @@ SRC		+= ./src/mp/workerpool.c
 SRC		+= ./src/socket/sio.c
 
 
-SRC		+= ./src/main.c
+SRC_TEST	+= ./src/main.c
 
 ################################################################################
 
@@ -228,6 +228,8 @@ DEPS		+= $(patsubst %.c, $(BUILDDIR)/.obj/%_C.dep, $(CLI_C_SRC))
 OBJECTS		:= $(patsubst %.c, $(BUILDDIR)/.obj/%_C.o, $(C_SRC))
 OBJECTS		+= $(patsubst %.cpp, $(BUILDDIR)/.obj/%_CXX.o, $(CXX_SRC))
 
+OBJECTS_TEST	:= $(patsubst %.c, $(BUILDDIR)/.obj/%_C.o, $(SRC_TEST))
+
 # tools
 INSTALL		:= install
 STRIP		:=  $(CROSS)strip
@@ -291,9 +293,6 @@ debug:
 	@$(MAKE) CONF=debug $(VERB) -C . all-recursive
 release:
 	@$(MAKE) CONF=release $(VERB) -C . all-recursive
-install: all
-	@$(MAKE) CONF=release $(VERB) -C . TOOLCHAIN=gcc install-recursive
-.PHONY: install
 
 Release: release
 Debug: debug
@@ -313,64 +312,63 @@ ifdef HAVE_ICC
 	$(MAKE) $(VERB) -C . TOOLCHAIN=icc final-all-recursive
 endif
 
-final-all-recursive: $(BUILDDIR)/$(PROJECT_NAME)
+final-all-recursive:							\
+	$(BUILDDIR)/$(PROJECT_NAME).a					\
+	$(BUILDDIR)/$(PROJECT_NAME)_test
 
-install-recursive:
-	$(print_inst) $(PROJECT_NAME)
-	-mkdir -p $(DESTDIR)/usr/bin
-	-mkdir -p $(DESTDIR)/etc/egvpbridge
-	$(INSTALL) -s -p -m 0755 -t $(DESTDIR)/usr/bin \
-		$(BUILDDIR)/$(PROJECT_NAME)
-	$(INSTALL) -p -m 0600 -t $(DESTDIR)/etc/egvpbridge \
-		conf/egvpbridge.conf
-	$(INSTALL) -p -m 0600 -t $(DESTDIR)/etc/egvpbridge \
-		conf/text.xsl
-	$(INSTALL) -p -m 0600 -t $(DESTDIR)/etc/egvpbridge \
-		conf/html.xsl
 
-deb:
-	dpkg-buildpackage -b -D -us -uc
-.PHONY: deb
-
-$(BUILDDIR)/$(PROJECT_NAME): $(OBJECTS) $(EXPLICIT_LIBS)
+$(BUILDDIR)/$(PROJECT_NAME)_test:					\
+	$(OBJECTS_TEST) $(BUILDDIR)/$(PROJECT_NAME).a
 	$(print_ld) $(subst $(PWD)/,./,$(abspath $(@)))
 	@-mkdir -p $(dir $(@))
 ifdef PLAT_DARWIN
-	$(LD) -Wl,-rpath,"@loader_path/" $(MACARCHS) $(LDFLAGS) \
+	$(LD) -Wl,-rpath,"@loader_path/" $(MACARCHS) $(LDFLAGS)		\
 	$(LPATH) $(FRAMEWORKS) -o $(@) $(^) $(LIBRARIES)
 else
 	@export LD_RUN_PATH='$${ORIGIN}' && $(LD) $(MACARCHS) $(LDFLAGS) \
-	$(LPATH) -o $(@) $(OBJECTS) $(EXPLICIT_LIBS) $(LIBRARIES)
+	$(LPATH) -o $(@) $(^) $(LIBRARIES)
 endif
+
+$(BUILDDIR)/.obj/$(PROJECT_NAME).ro: $(OBJECTS)
+	@$(print_ld) $(subst $(PWD)/,./,$(abspath $(@)))
+	@-mkdir -p $(dir $(@))
+	$(LD) -nostdlib -Wl,-r $(MACARCHS) $(LDFLAGS)			\
+	$(LPATH) $(FRAMEWORKS) -o $(@) $(^)
+
+$(BUILDDIR)/$(PROJECT_NAME).a: $(BUILDDIR)/.obj/$(PROJECT_NAME).ro
+	@$(print_ar) $(subst $(PWD)/,./,$(abspath $(@)))
+	@-mkdir -p $(dir $(@))
+	@$(AR) $(ARFLAGS) $(@) $(^)
+
 
 $(BUILDDIR)/.obj/%_C.o: %.c
 	$(print_cc) $(subst $(PWD)/,./,$(abspath $(<)))
 	-mkdir -p $(dir $(@))
-	$(CC) $(CFLAGS) $(DEFINES) $(INCLUDES) -E -M -MT \
+	$(CC) $(CFLAGS) $(DEFINES) $(INCLUDES) -E -M -MT		\
 		"$(@) $(@:.o=.dep)" -o $(@:.o=.dep) $(<)
 	$(CC) $(CFLAGS) $(MACARCHS) $(DEFINES) $(INCLUDES) -c -o $(@) $(<)
 
 $(BUILDDIR)/.obj/%_C_PIC.o: %.c
 	$(print_cc) $(subst $(PWD)/,./,$(abspath $(<)))
 	-mkdir -p $(dir $(@))
-	$(CC) $(CFLAGS) $(DEFINES) -DPIC $(INCLUDES) -E -M -MT \
+	$(CC) $(CFLAGS) $(DEFINES) -DPIC $(INCLUDES) -E -M -MT		\
 		"$(@) $(@:.o=.dep)" -o $(@:.o=.dep) $(<)
-	$(CC) -fPIC $(CFLAGS) -DPIC $(MACARCHS) $(DEFINES) \
+	$(CC) -fPIC $(CFLAGS) -DPIC $(MACARCHS) $(DEFINES)		\
 		$(INCLUDES) -c -o $(@) $(<)
 
 $(BUILDDIR)/.obj/%_CXX.o: %.cpp
 	$(print_cxx) $(subst $(PWD)/,./,$(abspath $(<)))
 	-mkdir -p $(dir $(@))
-	$(CXX) $(CXXFLAGS) $(DEFINES) $(INCLUDES) -E -M -MT \
+	$(CXX) $(CXXFLAGS) $(DEFINES) $(INCLUDES) -E -M -MT		\
 		"$(@) $(@:.o=.dep)" -o $(@:.o=.dep) $(<)
 	$(CXX) $(CXXFLAGS) $(MACARCHS) $(DEFINES) $(INCLUDES) -c -o $(@) $(<)
 
 $(BUILDDIR)/.obj/%_CXX_PIC.o: %.cpp
 	$(print_cxx) $(subst $(PWD)/,./,$(abspath $(<)))
 	-mkdir -p $(dir $(@))
-	$(CXX) $(CXXFLAGS) $(DEFINES) -DPIC $(INCLUDES) -E -M -MT \
+	$(CXX) $(CXXFLAGS) $(DEFINES) -DPIC $(INCLUDES) -E -M -MT	\
 		"$(@) $(@:.o=.dep)" -o $(@:.o=.dep) $(<)
-	$(CXX) -fPIC $(CXXFLAGS) $(MACARCHS) $(DEFINES) -DPIC \
+	$(CXX) -fPIC $(CXXFLAGS) $(MACARCHS) $(DEFINES) -DPIC	\
 		$(INCLUDES) -c -o $(@) $(<)
 
 -include $(DEPS)
