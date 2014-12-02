@@ -24,8 +24,9 @@ static void log_client_accepted(int sock)
 		inet_ntoa(a.sin_addr), htons(a.sin_port));
 }
 
-static void handle_client_requests(int sock)
+static void add_new_client(int sock)
 {
+	log_client_accepted(sock);
 	sio_close(sock);
 	return;
 }
@@ -44,6 +45,9 @@ int main(int argc, char* argv[], char* envp[])
 		pdie("Couldn't create listening IPv4 socket.");
 
 	FD_ZERO(&active_set);
+	if (srv_sock >= FD_SETSIZE)
+		pdie("socket larger or equal than FD_SETSIZE (%d).", srv_sock);
+
 	FD_SET(srv_sock, &active_set);
 
 	while (1) {
@@ -52,14 +56,20 @@ int main(int argc, char* argv[], char* envp[])
 		res = sio_select(srv_sock+1, &read_set, 0, 0);
 		if (res < 0)
 			pdie("select() failed.");
+		if (res == 0)
+			/* timeout */
+			pdie("no select() timeout expected.");
 
 		if (FD_ISSET(srv_sock, &read_set)) {
 			new_client_sock = sio_accept(srv_sock);
 			if (new_client_sock < 0)
 				pdie("accept() failed.");
 
-			log_client_accepted(new_client_sock);
-			handle_client_requests(new_client_sock);
+			/* we do not add the client socket to the
+			 * active fd set, so that it definitely means
+			 * that a new client tries to connect when the
+			 * select returns */
+			add_new_client(new_client_sock);
 		}
 	}
 
