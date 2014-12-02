@@ -37,7 +37,8 @@ static void sio_sigpipe(int signal, siginfo_t* info, void* context)
 
 static int eintr_handler(void)
 {
-	/* restart io primitive */
+	/* return 0 to restart an io primitive after an interrupt,
+	 * or nonzero to cancel it */
 	return 0;
 }
 
