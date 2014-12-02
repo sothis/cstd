@@ -103,6 +103,7 @@ LIBRARIES	+= -lpthread
 INCLUDES	+= -I./src
 INCLUDES	+= -I./src/mp
 INCLUDES	+= -I./src/socket
+INCLUDES	+= -I./src/apps
 
 SRC		+= ./src/version.c
 .PHONY: ./src/version.c
@@ -124,7 +125,9 @@ SRC		+= ./src/mp/workerpool.c
 SRC		+= ./src/socket/sio.c
 
 
-SRC_TEST	+= ./src/main.c
+SRC_TEST	+= ./src/apps/test.c
+SRC_CLIENT	+= ./src/apps/server.c
+SRC_SERVER	+= ./src/apps/client.c
 
 ################################################################################
 
@@ -229,6 +232,8 @@ OBJECTS		:= $(patsubst %.c, $(BUILDDIR)/.obj/%_C.o, $(C_SRC))
 OBJECTS		+= $(patsubst %.cpp, $(BUILDDIR)/.obj/%_CXX.o, $(CXX_SRC))
 
 OBJECTS_TEST	:= $(patsubst %.c, $(BUILDDIR)/.obj/%_C.o, $(SRC_TEST))
+OBJECTS_CLIENT	:= $(patsubst %.c, $(BUILDDIR)/.obj/%_C.o, $(SRC_CLIENT))
+OBJECTS_SERVER	:= $(patsubst %.c, $(BUILDDIR)/.obj/%_C.o, $(SRC_SERVER))
 
 # tools
 INSTALL		:= install
@@ -314,11 +319,36 @@ endif
 
 final-all-recursive:							\
 	$(BUILDDIR)/$(PROJECT_NAME).a					\
-	$(BUILDDIR)/$(PROJECT_NAME)_test
-
+	$(BUILDDIR)/$(PROJECT_NAME)_test				\
+	$(BUILDDIR)/$(PROJECT_NAME)_client				\
+	$(BUILDDIR)/$(PROJECT_NAME)_server
 
 $(BUILDDIR)/$(PROJECT_NAME)_test:					\
 	$(OBJECTS_TEST) $(BUILDDIR)/$(PROJECT_NAME).a
+	$(print_ld) $(subst $(PWD)/,./,$(abspath $(@)))
+	@-mkdir -p $(dir $(@))
+ifdef PLAT_DARWIN
+	$(LD) -Wl,-rpath,"@loader_path/" $(MACARCHS) $(LDFLAGS)		\
+	$(LPATH) $(FRAMEWORKS) -o $(@) $(^) $(LIBRARIES)
+else
+	@export LD_RUN_PATH='$${ORIGIN}' && $(LD) $(MACARCHS) $(LDFLAGS) \
+	$(LPATH) -o $(@) $(^) $(LIBRARIES)
+endif
+
+$(BUILDDIR)/$(PROJECT_NAME)_client:					\
+	$(OBJECTS_CLIENT) $(BUILDDIR)/$(PROJECT_NAME).a
+	$(print_ld) $(subst $(PWD)/,./,$(abspath $(@)))
+	@-mkdir -p $(dir $(@))
+ifdef PLAT_DARWIN
+	$(LD) -Wl,-rpath,"@loader_path/" $(MACARCHS) $(LDFLAGS)		\
+	$(LPATH) $(FRAMEWORKS) -o $(@) $(^) $(LIBRARIES)
+else
+	@export LD_RUN_PATH='$${ORIGIN}' && $(LD) $(MACARCHS) $(LDFLAGS) \
+	$(LPATH) -o $(@) $(^) $(LIBRARIES)
+endif
+
+$(BUILDDIR)/$(PROJECT_NAME)_server:					\
+	$(OBJECTS_SERVER) $(BUILDDIR)/$(PROJECT_NAME).a
 	$(print_ld) $(subst $(PWD)/,./,$(abspath $(@)))
 	@-mkdir -p $(dir $(@))
 ifdef PLAT_DARWIN
@@ -339,7 +369,6 @@ $(BUILDDIR)/$(PROJECT_NAME).a: $(BUILDDIR)/.obj/$(PROJECT_NAME).ro
 	@$(print_ar) $(subst $(PWD)/,./,$(abspath $(@)))
 	@-mkdir -p $(dir $(@))
 	@$(AR) $(ARFLAGS) $(@) $(^)
-
 
 $(BUILDDIR)/.obj/%_C.o: %.c
 	$(print_cc) $(subst $(PWD)/,./,$(abspath $(<)))
