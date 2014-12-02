@@ -13,6 +13,9 @@
 #include <sys/select.h>
 #endif
 
+#include <arpa/inet.h>
+#include <netdb.h>
+
 #if TLS
 	#include "openssl/ssl.h"
 	#include "openssl/err.h"
