@@ -10,7 +10,9 @@
 #include <windows.h>
 #include <winsock2.h>
 #else
+#include <sys/types.h>
 #include <sys/select.h>
+#include <sys/socket.h>
 #endif
 
 #include <arpa/inet.h>
