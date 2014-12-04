@@ -37,6 +37,31 @@ int main_select(int argc, char* argv[], char* envp[])
 
 int main(int argc, char* argv[], char* envp[])
 {
+	struct addrinfo filter, *servinfo, *p;
+	int r, fd;
+
+	memset(&filter, 0, sizeof(filter));
+	filter.ai_family = AF_UNSPEC;
+	filter.ai_socktype = SOCK_STREAM;
+
+	if ((r = getaddrinfo("www.google.de", "https", &filter, &servinfo)) != 0) {
+		fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(r));
+		exit(1);
+	}
+
+	for(p = servinfo; p != NULL; p = p->ai_next) {
+		if ((fd = socket(p->ai_family, p->ai_socktype, p->ai_protocol)) == -1) {
+			perror("socket");
+			continue;
+		}
+		if (connect(fd, p->ai_addr, p->ai_addrlen) == -1) {
+			close(fd);
+			perror("connect");
+			continue;
+		}
+		break;
+	}
+
 
 	return 0;
 }
