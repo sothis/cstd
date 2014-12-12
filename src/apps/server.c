@@ -9,8 +9,10 @@
 
 #include "sio.h"
 
+#include "sdtl.h"
+
 #define	IFCE		"127.0.0.1"
-#define PORT		1337
+#define PORT		4242
 #define REUSEADDR	1
 #define BACKLOG		10
 
