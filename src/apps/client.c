@@ -85,9 +85,11 @@ int main(int argc, char* argv[], char* envp[])
 	sdtl_write_start_octet_stream(&sdtl_wfd, "resource_stream");
 
 	// loop over sdtl_write_chunk(&sdtl_wfd, unsigned char* data, uint16_t len)
-	sdtl_write_chunk(&sdtl_wfd, (unsigned char*)"hello", 5);
+	sdtl_write_chunk(&sdtl_wfd, (unsigned char*)"hello", 6);
 
 	sdtl_write_end_octet_stream(&sdtl_wfd);
+
+	sdtl_write_number(&sdtl_wfd, "uuid2", "234242342342");
 
 	close(fd);
 

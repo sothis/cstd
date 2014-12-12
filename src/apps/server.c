@@ -26,9 +26,63 @@ static void log_client_accepted(int sock)
 		inet_ntoa(a.sin_addr), htons(a.sin_port));
 }
 
+int _on_sdtl_event(void* userdata, sdtl_event_t e, sdtl_data_t* data)
+{
+	switch (e) {
+		case ev_assignment_start:
+			printf("assignment start\n");
+			break;
+		case ev_data:
+			printf("data\n");
+			break;
+		case ev_struct_start:
+			printf("struct start\n");
+			break;
+		case ev_struct_end:
+			printf("struct end\n");
+			break;
+		case ev_array_new_row:
+			printf("array new row\n");
+			break;
+		case ev_array_end_row:
+			printf("array end row\n");
+			break;
+		case ev_octet_stream_start:
+			printf("stream start\n");
+			break;
+		case ev_octet_stream_end:
+			printf("stream end\n");
+			break;
+		default:
+			printf("unexpected event\n");
+			return -1;
+	}
+
+	return 0;
+}
+
 static void add_new_client(int sock)
 {
 	log_client_accepted(sock);
+
+	sdtl_read_fd_t sdtl_rfd;
+	sdtl_read_flags_t sdtl_read_flags;
+
+	memset(&sdtl_read_flags, 0, sizeof(sdtl_read_flags_t));
+	sdtl_read_flags.on_event = &_on_sdtl_event;
+	sdtl_read_flags.max_struct_nesting = 4;
+	sdtl_read_flags.max_file_size =
+	sdtl_read_flags.max_text_bytes = uint64_max;
+
+
+	sdtl_open_read(&sdtl_rfd, sock, &sdtl_read_flags);
+	if (sdtl_read(&sdtl_rfd)) {
+		fprintf(stderr, "the parser has interrupted its work "
+			"(error %d) @ '%c'\n",
+			sdtl_get_error(&sdtl_rfd), sdtl_rfd.byte);
+	}
+
+	printf("closing connection\n");
 	sio_close(sock);
 	return;
 }
