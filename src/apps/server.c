@@ -30,33 +30,34 @@ int _on_sdtl_event(void* userdata, sdtl_event_t e, sdtl_data_t* data)
 {
 	switch (e) {
 		case ev_assignment_start:
-			printf("assignment start\n");
+			fprintf(stderr, "assignment start\n");
 			break;
 		case ev_data:
-			printf("data\n");
+			fprintf(stderr, "data\n");
 			break;
 		case ev_struct_start:
-			printf("struct start\n");
+			fprintf(stderr, "struct start\n");
 			break;
 		case ev_struct_end:
-			printf("struct end\n");
+			fprintf(stderr, "struct end\n");
 			break;
 		case ev_array_new_row:
-			printf("array new row\n");
+			fprintf(stderr, "array new row\n");
 			break;
 		case ev_array_end_row:
-			printf("array end row\n");
+			fprintf(stderr, "array end row\n");
 			break;
 		case ev_octet_stream_start:
-			printf("stream start\n");
+			fprintf(stderr, "stream start\n");
 			break;
 		case ev_octet_stream_end:
-			printf("stream end\n");
+			fprintf(stderr, "stream end\n");
 			break;
 		default:
-			printf("unexpected event\n");
+			fprintf(stderr, "unexpected event\n");
 			return -1;
 	}
+	fflush(stderr);
 
 	return 0;
 }
@@ -73,7 +74,6 @@ static void add_new_client(int sock)
 	sdtl_read_flags.max_struct_nesting = 4;
 	sdtl_read_flags.max_file_size =
 	sdtl_read_flags.max_text_bytes = uint64_max;
-
 
 	sdtl_open_read(&sdtl_rfd, sock, &sdtl_read_flags);
 	if (sdtl_read(&sdtl_rfd)) {

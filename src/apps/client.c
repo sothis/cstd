@@ -58,7 +58,6 @@ int main(int argc, char* argv[], char* envp[])
 		}
 		if (connect(fd, p->ai_addr, p->ai_addrlen) == -1) {
 			close(fd);
-			perror("connect");
 			continue;
 		} else {
 			printf("connected\n");
@@ -90,6 +89,7 @@ int main(int argc, char* argv[], char* envp[])
 	sdtl_write_end_octet_stream(&sdtl_wfd);
 
 	sdtl_write_number(&sdtl_wfd, "uuid2", "234242342342");
+	sdtl_flush(&sdtl_wfd);
 
 	close(fd);
 
