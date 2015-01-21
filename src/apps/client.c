@@ -66,6 +66,7 @@ int main(int argc, char* argv[], char* envp[])
 	}
 	if (fd < 0) {
 		perror("no socket\n");
+		freeaddrinfo(servinfo);
 		exit(~0);
 	}
 
@@ -92,6 +93,7 @@ int main(int argc, char* argv[], char* envp[])
 	sdtl_flush(&sdtl_wfd);
 
 	close(fd);
+	freeaddrinfo(servinfo);
 
 	return 0;
 }
