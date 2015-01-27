@@ -69,6 +69,8 @@ int main(int argc, char* argv[], char* envp[])
 
 	unsigned char buf[65535];
 
+	memset(buf, 0, 65535);
+
 	sdtl_write_start_struct(&sdtl_wfd, "operation");
 		sdtl_write_enum(&sdtl_wfd, "do", "add_resource");
 		sdtl_write_start_struct(&sdtl_wfd, "param");
