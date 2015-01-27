@@ -27,15 +27,6 @@ int main_select(int argc, char* argv[], char* envp[])
 	return 0;
 }
 
-#if 0
-       int getaddrinfo(const char *node, const char *service,
-                       const struct addrinfo *hints,
-                       struct addrinfo **res);
-
-       void freeaddrinfo(struct addrinfo *res);
-
-       const char *gai_strerror(int errcode);
-#endif
 
 int main(int argc, char* argv[], char* envp[])
 {
