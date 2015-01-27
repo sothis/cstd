@@ -31,7 +31,7 @@ int main_select(int argc, char* argv[], char* envp[])
 int main(int argc, char* argv[], char* envp[])
 {
 	struct addrinfo filter, *servinfo, *p;
-	int r, fd = -1;
+	int r, i, fd = -1;
 
 	memset(&filter, 0, sizeof(filter));
 	filter.ai_family = AF_UNSPEC;
@@ -60,11 +60,14 @@ int main(int argc, char* argv[], char* envp[])
 		freeaddrinfo(servinfo);
 		exit(~0);
 	}
+	printf("srv fd: %d\n", fd);
 
 	sdtl_write_fd_t sdtl_wfd;
 	int dbg_fd = fileno(stdout);
 
 	sdtl_open_write(&sdtl_wfd, fd, &dbg_fd);
+
+	unsigned char buf[65535];
 
 	sdtl_write_start_struct(&sdtl_wfd, "operation");
 		sdtl_write_enum(&sdtl_wfd, "do", "add_resource");
@@ -77,7 +80,10 @@ int main(int argc, char* argv[], char* envp[])
 	sdtl_write_start_octet_stream(&sdtl_wfd, "resource_stream");
 
 	// loop over sdtl_write_chunk(&sdtl_wfd, unsigned char* data, uint16_t len)
-	sdtl_write_chunk(&sdtl_wfd, (unsigned char*)"hello", 6);
+	for (i = 0; i < 10; ++i) {
+		//sdtl_write_chunk(&sdtl_wfd, (unsigned char*)"hello", 6);
+		sdtl_write_chunk(&sdtl_wfd, buf, 65535);
+	}
 
 	sdtl_write_end_octet_stream(&sdtl_wfd);
 

@@ -30,10 +30,10 @@ int _on_sdtl_event(void* userdata, sdtl_event_t e, sdtl_data_t* data)
 {
 	switch (e) {
 		case ev_assignment_start:
-			fprintf(stderr, "assignment start\n");
+			fprintf(stderr, "assignment start: '%s'\n", (char*)data->data);
 			break;
 		case ev_data:
-			fprintf(stderr, "data\n");
+			fprintf(stderr, "\tvalue data (%u bytes)\n", data->length);
 			break;
 		case ev_struct_start:
 			fprintf(stderr, "struct start\n");
