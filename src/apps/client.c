@@ -62,8 +62,9 @@ int main(int argc, char* argv[], char* envp[])
 	}
 
 	sdtl_write_fd_t sdtl_wfd;
+	int dbg_fd = fileno(stdout);
 
-	sdtl_open_write(&sdtl_wfd, fd, 0);
+	sdtl_open_write(&sdtl_wfd, fd, &dbg_fd);
 
 	sdtl_write_start_struct(&sdtl_wfd, "operation");
 		sdtl_write_enum(&sdtl_wfd, "do", "add_resource");
