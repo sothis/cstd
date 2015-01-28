@@ -29,6 +29,9 @@ static void log_client_accepted(int sock)
 int _on_sdtl_event(void* userdata, sdtl_event_t e, sdtl_data_t* data)
 {
 	switch (e) {
+		case ev_sdtl_stream_begin:
+			fprintf(stderr, "stream begin\n");
+			break;
 		case ev_assignment_start:
 			fprintf(stderr, "assignment start: '%s'\n", (char*)data->data);
 			break;
@@ -74,6 +77,7 @@ static void add_new_client(int sock)
 	sdtl_read_flags.max_struct_nesting = 4;
 	sdtl_read_flags.max_file_size =
 	sdtl_read_flags.max_text_bytes = uint64_max;
+	sdtl_read_flags.userdata = 0;
 
 	sdtl_open_read(&sdtl_rfd, sock, &sdtl_read_flags);
 	if (sdtl_read(&sdtl_rfd)) {

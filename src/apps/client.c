@@ -120,11 +120,13 @@ int main(int argc, char* argv[], char* envp[])
 
 	memset(buf, 0, 65535);
 
+	sdtl_write_enum(&sdtl_wfd, "application", "resource-transfer");
+	sdtl_write_utf8string(&sdtl_wfd, "protocol-version", "1.0");
 	sdtl_write_start_struct(&sdtl_wfd, "operation");
-		sdtl_write_enum(&sdtl_wfd, "do", "add_resource");
-		sdtl_write_start_struct(&sdtl_wfd, "param");
+		sdtl_write_enum(&sdtl_wfd, "do", "add-resource");
+		sdtl_write_start_struct(&sdtl_wfd, "parameter");
 			sdtl_write_number(&sdtl_wfd, "uuid", "84654232316898463");
-			sdtl_write_utf8string(&sdtl_wfd, "name", "some_document.pdf");
+			sdtl_write_utf8string(&sdtl_wfd, "resource-name", "document.pdf");
 		sdtl_write_end_struct(&sdtl_wfd);
 	sdtl_write_end_struct(&sdtl_wfd);
 
@@ -144,8 +146,9 @@ int main(int argc, char* argv[], char* envp[])
 
 	sdtl_write_end_octet_stream(&sdtl_wfd);
 
-	sdtl_write_number(&sdtl_wfd, "uuid2", "234242342342");
-	sdtl_flush(&sdtl_wfd);
+/* not needed if sdtl_write_end_octet_stream() is the last sdtl write operation
+ * since it is called implicitely there */
+//	sdtl_flush(&sdtl_wfd);
 
 	close(fd);
 	freeaddrinfo(servinfo);
