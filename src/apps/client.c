@@ -127,10 +127,11 @@ int main(int argc, char* argv[], char* envp[])
 		sdtl_write_start_struct(&sdtl_wfd, "parameter");
 			sdtl_write_number(&sdtl_wfd, "uuid", "84654232316898463");
 			sdtl_write_utf8string(&sdtl_wfd, "resource-name", "document.pdf");
+			sdtl_write_enum(&sdtl_wfd, "stream-name", "resource-stream");
 		sdtl_write_end_struct(&sdtl_wfd);
 	sdtl_write_end_struct(&sdtl_wfd);
 
-	sdtl_write_start_octet_stream(&sdtl_wfd, "resource_stream");
+	sdtl_write_start_octet_stream(&sdtl_wfd, "resource-stream");
 
 	// loop over sdtl_write_chunk(&sdtl_wfd, unsigned char* data, uint16_t len)
 	for (i = 0; i < 10; ++i) {
