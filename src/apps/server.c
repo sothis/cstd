@@ -146,6 +146,7 @@ int main(int argc, char* argv[], char* envp[])
 			 * active fd set, so that it definitely means
 			 * that a new client tries to connect when the
 			 * select returns */
+			sio_set_recv_timeout(new_client_sock, 2000);
 			add_new_client(new_client_sock);
 		}
 	}
