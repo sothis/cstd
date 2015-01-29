@@ -122,7 +122,7 @@ int main(int argc, char* argv[], char* envp[])
 	sdtl_write_fd_t sdtl_wfd;
 	int dbg_fd = fileno(stdout);
 
-	sdtl_open_write(&sdtl_wfd, fd, /*&dbg_fd*/0);
+	sdtl_open_write(&sdtl_wfd, fd, &dbg_fd);
 
 	unsigned char buf[65535];
 	int file_fd = -1;
