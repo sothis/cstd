@@ -60,6 +60,7 @@ const char* address_families[] = {
 };
 
 const char* socket_types[] = {
+	"SOCK_UNSPEC",
 	"SOCK_STREAM",
 	"SOCK_DGRAM",
 	"SOCK_RAW",
@@ -99,6 +100,9 @@ int main(int argc, char* argv[], char* envp[])
 			exit(~0);
 		}
 		if (connect(fd, p->ai_addr, p->ai_addrlen) < 0) {
+		#if 0
+			perror("unable to connect to socket");
+		#endif
 			close(fd);
 			fd = -1;
 			continue;
@@ -115,7 +119,7 @@ int main(int argc, char* argv[], char* envp[])
 	sdtl_write_fd_t sdtl_wfd;
 	int dbg_fd = fileno(stdout);
 
-	sdtl_open_write(&sdtl_wfd, fd, &dbg_fd);
+	sdtl_open_write(&sdtl_wfd, fd, /*&dbg_fd*/0);
 
 	unsigned char buf[65535];
 	int file_fd = -1;

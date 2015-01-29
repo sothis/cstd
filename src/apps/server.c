@@ -30,6 +30,9 @@ static void log_client_accepted(int sock)
 static int sbegin = 0;
 static int test_fd = 0;
 
+void nothing(FILE* stream, ...) {}
+#define fprintf nothing
+
 int _on_sdtl_event(void* userdata, sdtl_event_t e, sdtl_data_t* data)
 {
 	switch (e) {
@@ -76,6 +79,8 @@ int _on_sdtl_event(void* userdata, sdtl_event_t e, sdtl_data_t* data)
 	return 0;
 }
 
+#undef fprintf
+
 static void add_new_client(int sock)
 {
 	log_client_accepted(sock);
@@ -90,7 +95,8 @@ static void add_new_client(int sock)
 	sdtl_read_flags.max_text_bytes = uint64_max;
 	sdtl_read_flags.userdata = 0;
 
-	sdtl_open_read(&sdtl_rfd, sock, &sdtl_read_flags);
+	int dbg_fd = fileno(stdout);
+	sdtl_open_read(&sdtl_rfd, sock, &dbg_fd, &sdtl_read_flags);
 	if (sdtl_read(&sdtl_rfd)) {
 		fprintf(stderr, "the parser has interrupted its work "
 			"(error %d) @ '%c'\n",
