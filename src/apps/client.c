@@ -67,6 +67,9 @@ const char* socket_types[] = {
 	"SOCK_RDM",
 	"SOCK_SEQPACKET",
 	"SOCK_DCCP",
+	"SOCK_UNSPEC",
+	"SOCK_UNSPEC",
+	"SOCK_UNSPEC",
 	"SOCK_PACKET"
 };
 
