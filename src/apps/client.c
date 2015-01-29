@@ -13,6 +13,7 @@
 
 #define	HOSTNAME	"localhost"
 #define PORT		"4242"
+#define TESTFILE	"/home/sothis/rimg.bin"
 
 const char* address_families[] = {
 	"AF_UNSPEC",
@@ -117,6 +118,15 @@ int main(int argc, char* argv[], char* envp[])
 	sdtl_open_write(&sdtl_wfd, fd, &dbg_fd);
 
 	unsigned char buf[65535];
+	int file_fd = -1;
+	uint16_t nread = 0;
+	file_fd = open(TESTFILE, O_RDONLY);
+
+	if (file_fd < 0) {
+		perror("unable to openfile");
+		freeaddrinfo(servinfo);
+		exit(~0);
+	}
 
 	memset(buf, 0, 65535);
 
@@ -132,19 +142,11 @@ int main(int argc, char* argv[], char* envp[])
 	sdtl_write_end_struct(&sdtl_wfd);
 
 	sdtl_write_start_octet_stream(&sdtl_wfd, "resource-stream");
-
-	// loop over sdtl_write_chunk(&sdtl_wfd, unsigned char* data, uint16_t len)
-	for (i = 0; i < 10; ++i) {
-		/* TODO:
-		 *  	adjust SDTL to support resource streams without
-		 *	chunks in order to be able to make full use of the
-		 *	linux sendfile() API (it's possible with the current
-		 *	variable chunksize solution of SDTL octet streams but
-		 *	it would limit sendfile calls to 64kB chunks at max)
-		*/
-		sdtl_write_chunk(&sdtl_wfd, buf, 65535);
+	while ((nread = read(file_fd, buf, 65535)) > 0) {
+		if (sdtl_write_chunk(&sdtl_wfd, buf, nread)) {
+			pdie("sdtl_write_chunk() failed");
+		}
 	}
-
 	sdtl_write_end_octet_stream(&sdtl_wfd);
 
 /* not needed if sdtl_write_end_octet_stream() is the last sdtl write operation

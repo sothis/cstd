@@ -15,6 +15,7 @@
 #define PORT		4242
 #define REUSEADDR	1
 #define BACKLOG		10
+#define TESTFILE	"/home/sothis/rimg.bin.copy"
 
 static void log_client_accepted(int sock)
 {
@@ -25,6 +26,9 @@ static void log_client_accepted(int sock)
 	eprintf(LOG_INFO, "accepted connection from [%s]:%u\n",
 		inet_ntoa(a.sin_addr), htons(a.sin_port));
 }
+
+static int sbegin = 0;
+static int test_fd = 0;
 
 int _on_sdtl_event(void* userdata, sdtl_event_t e, sdtl_data_t* data)
 {
@@ -37,6 +41,9 @@ int _on_sdtl_event(void* userdata, sdtl_event_t e, sdtl_data_t* data)
 			break;
 		case ev_data:
 			fprintf(stderr, "\tvalue data (%u bytes)\n", data->length);
+			if (sbegin) {
+				xwrite(test_fd, data->data, data->length);
+			}
 			break;
 		case ev_struct_start:
 			fprintf(stderr, "struct start\n");
@@ -51,9 +58,13 @@ int _on_sdtl_event(void* userdata, sdtl_event_t e, sdtl_data_t* data)
 			fprintf(stderr, "array end row\n");
 			break;
 		case ev_octet_stream_start:
+			sbegin = 1;
+			test_fd = open(TESTFILE, O_RDWR | O_CREAT, 0644);
 			fprintf(stderr, "stream start\n");
 			break;
 		case ev_octet_stream_end:
+			sbegin = 0;
+			close(test_fd);
 			fprintf(stderr, "stream end\n");
 			break;
 		default:
