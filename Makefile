@@ -103,6 +103,8 @@ LIBRARIES	+= -lpthread
 INCLUDES	+= -I./sdtl/src
 INCLUDES	+= -I./sdtl/include
 
+INCLUDES	+= -I./libk/include
+
 INCLUDES	+= -I./src
 INCLUDES	+= -I./src/mp
 INCLUDES	+= -I./src/socket
@@ -158,7 +160,7 @@ DEFINES		+= -D_REENTRANT=1
 DEFINES		+= -D__$(PLATFORM)__=1
 DEFINES		+= -DVERSION='"$(VERSION)"'
 DEFINES		+= -D__$(TOOLCHAIN)__=1
-
+DEFINES		+= -D__LIBRARY_BUILD=1
 
 # toolchain configuration
 # common flags
@@ -353,16 +355,21 @@ else
 endif
 
 $(BUILDDIR)/$(PROJECT_NAME)_server:					\
-	$(OBJECTS_SERVER) $(BUILDDIR)/$(PROJECT_NAME).a
+	$(OBJECTS_SERVER) libk/build/gcc_release/libk.a			\
+	$(BUILDDIR)/$(PROJECT_NAME).a
 	$(print_ld) $(subst $(PWD)/,./,$(abspath $(@)))
 	@-mkdir -p $(dir $(@))
 ifdef PLAT_DARWIN
 	$(LD) -Wl,-rpath,"@loader_path/" $(MACARCHS) $(LDFLAGS)		\
-	$(LPATH) $(FRAMEWORKS) -o $(@) $(^) $(LIBRARIES)
+	$(LPATH) $(FRAMEWORKS) -o $(@) $(^) libk/build/gcc_release/libk.a \
+	$(LIBRARIES)
 else
 	@export LD_RUN_PATH='$${ORIGIN}' && $(LD) $(MACARCHS) $(LDFLAGS) \
-	$(LPATH) -o $(@) $(^) $(LIBRARIES)
+	$(LPATH) -o $(@) $(^) libk/build/gcc_release/libk.a $(LIBRARIES)
 endif
+
+libk/build/gcc_release/libk.a:
+	$(MAKE) -C libk all
 
 $(BUILDDIR)/.obj/$(PROJECT_NAME).ro: $(OBJECTS)
 	@$(print_ld) $(subst $(PWD)/,./,$(abspath $(@)))

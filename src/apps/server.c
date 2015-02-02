@@ -10,6 +10,7 @@
 #include "sio.h"
 
 #include "sdtl.h"
+#include <libk/libk.h>
 
 #define	IFCE		"127.0.0.1"
 #define PORT		4242
@@ -112,6 +113,8 @@ int cstd_main(int argc, char* argv[], char* envp[])
 	fd_set active_set;
 	fd_set read_set;
 
+	if (k_run_unittests(0))
+		pdie("some of the libk unit tests failed.");
 
 	srv_sock = sio_listen4(IFCE, PORT, REUSEADDR, BACKLOG);
 	if (srv_sock < 0)
