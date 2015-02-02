@@ -84,9 +84,6 @@ int cstd_main(int argc, char* argv[], char* envp[])
 	filter.ai_protocol = 0; /* any */
 	filter.ai_flags = 0; /* none */
 
-	eprintf(LOG_INFO, "cstd client startup");
-	eprintf(LOG_INFO, "cstd client startup2");
-
 	if ((r = getaddrinfo(HOSTNAME, PORT, &filter, &servinfo)) != 0) {
 		fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(r));
 		exit(1);
