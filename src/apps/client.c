@@ -73,16 +73,19 @@ const char* socket_types[] = {
 	"SOCK_PACKET"
 };
 
-int main(int argc, char* argv[], char* envp[])
+int cstd_main(int argc, char* argv[], char* envp[])
 {
 	struct addrinfo filter, *servinfo, *p;
-	int r, i, fd = -1;
+	int r, fd = -1;
 
 	memset(&filter, 0, sizeof(filter));
 	filter.ai_family = AF_UNSPEC;
 	filter.ai_socktype = SOCK_STREAM; /* TCP */
 	filter.ai_protocol = 0; /* any */
 	filter.ai_flags = 0; /* none */
+
+	eprintf(LOG_INFO, "cstd client startup");
+	eprintf(LOG_INFO, "cstd client startup2");
 
 	if ((r = getaddrinfo(HOSTNAME, PORT, &filter, &servinfo)) != 0) {
 		fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(r));

@@ -111,6 +111,7 @@ INCLUDES	+= -I./src/apps
 SRC		+= ./src/version.c
 .PHONY: ./src/version.c
 
+SRC		+= ./src/cstd_main.c
 SRC		+= ./src/fs.c
 SRC		+= ./src/mem.c
 SRC		+= ./src/path.c

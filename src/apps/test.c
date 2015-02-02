@@ -8,7 +8,7 @@
 #include <string.h>
 
 
-int main(int argc, char* argv[], char* envp[])
+int cstd_main(int argc, char* argv[], char* envp[])
 {
 	int fd0, fd1, fd2, fd3;
 

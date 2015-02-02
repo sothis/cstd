@@ -10,6 +10,9 @@
 /* mode_t */
 #include <sys/types.h>
 
+const char* application_name;
+extern int cstd_main(int argc, char* argv[], char* envp[]);
+
 #if defined(_MSC_VER)
 #pragma section(".CRT$XCU", read)
 #define __constructor(f)			\

@@ -30,56 +30,51 @@ static void log_client_accepted(int sock)
 static int sbegin = 0;
 static int test_fd = 0;
 
-void nothing(FILE* stream, ...) {}
-#define fprintf nothing
-
 int _on_sdtl_event(void* userdata, sdtl_event_t e, sdtl_data_t* data)
 {
 	switch (e) {
 		case ev_sdtl_stream_begin:
-			fprintf(stderr, "stream begin\n");
+			eprintf(LOG_INFO, "stream begin\n");
 			break;
 		case ev_assignment_start:
-			fprintf(stderr, "assignment start: '%s'\n", (char*)data->data);
+			eprintf(LOG_INFO, "assignment start: '%s'\n", (char*)data->data);
 			break;
 		case ev_data:
-			fprintf(stderr, "\tvalue data (%u bytes)\n", data->length);
+			eprintf(LOG_INFO, "\tvalue data (%u bytes)\n", data->length);
 			if (sbegin) {
 				xwrite(test_fd, data->data, data->length);
 			}
 			break;
 		case ev_struct_start:
-			fprintf(stderr, "struct start\n");
+			eprintf(LOG_INFO, "struct start\n");
 			break;
 		case ev_struct_end:
-			fprintf(stderr, "struct end\n");
+			eprintf(LOG_INFO, "struct end\n");
 			break;
 		case ev_array_new_row:
-			fprintf(stderr, "array new row\n");
+			eprintf(LOG_INFO, "array new row\n");
 			break;
 		case ev_array_end_row:
-			fprintf(stderr, "array end row\n");
+			eprintf(LOG_INFO, "array end row\n");
 			break;
 		case ev_octet_stream_start:
 			sbegin = 1;
 			test_fd = open(TESTFILE, O_RDWR | O_CREAT, 0644);
-			fprintf(stderr, "stream start\n");
+			eprintf(LOG_INFO, "stream start\n");
 			break;
 		case ev_octet_stream_end:
 			sbegin = 0;
 			close(test_fd);
-			fprintf(stderr, "stream end\n");
+			eprintf(LOG_INFO, "stream end\n");
 			break;
 		default:
-			fprintf(stderr, "unexpected event\n");
+			eprintf(LOG_CRIT, "unexpected event\n");
 			return -1;
 	}
 	fflush(stderr);
 
 	return 0;
 }
-
-#undef fprintf
 
 static void add_new_client(int sock)
 {
@@ -98,9 +93,10 @@ static void add_new_client(int sock)
 	int dbg_fd = fileno(stdout);
 	sdtl_open_read(&sdtl_rfd, sock, &dbg_fd, &sdtl_read_flags);
 	if (sdtl_read(&sdtl_rfd)) {
-		fprintf(stderr, "the parser has interrupted its work "
+		eprintf(LOG_CRIT, "the parser has interrupted its work "
 			"(error %d) @ '%c'\n",
 			sdtl_get_error(&sdtl_rfd), sdtl_rfd.byte);
+		pdie("Invalid SDTL input. Terminating.\n");
 	}
 
 	printf("closing connection\n");
@@ -108,7 +104,7 @@ static void add_new_client(int sock)
 	return;
 }
 
-int main(int argc, char* argv[], char* envp[])
+int cstd_main(int argc, char* argv[], char* envp[])
 {
 	int res = 0;
 	int srv_sock = 0;
