@@ -10,16 +10,11 @@
 
 int mkdirp(const char* path)
 {
-	char* cwd = 0;
 	char* p, *tok;
 	int e;
 
 	if (!path || !strlen(path))
 		return -1;
-
-	cwd = get_current_dir_name();
-	if (!cwd)
-		pdie("couldn't get current working directory");
 
 	p = xstrdup(path);
 
@@ -29,18 +24,15 @@ int mkdirp(const char* path)
 		e = mkdir(tok, 0755);
 		if (e && (errno != EEXIST)) {
 			free(p);
-			chdir(cwd), free(cwd);
 			return -1;
 		}
 		if (chdir(tok)) {
 			free(p);
-			chdir(cwd), free(cwd);
 			return -1;
 		}
 		tok = strtok(0, "/");
 	}
 	free(p);
-	chdir(cwd), free(cwd);
 	return 0;
 }
 
@@ -51,6 +43,7 @@ int mkpath(uint64_t uuid)
 	char cpath[40];
 	char path[20];
 	char fname[5];
+	char* cwd = 0;
 
 	memset(fname, 0, 5);
 	memset(path, 0, 20);
@@ -81,10 +74,16 @@ int mkpath(uint64_t uuid)
 			cpath[j+4] = '/';
 	}
 
+	cwd = get_current_dir_name();
+	if (!cwd)
+		pdie("couldn't get current working directory");
+
 	if (mkdirp(path))
 		return -1;
 
 	fd = open(fname, O_RDWR | O_CREAT | O_EXCL);
+	close(fd);
+	chdir(cwd), free(cwd);
 
 	return fd;
 }
@@ -97,6 +96,5 @@ int kfile_create(uint64_t uuid, const char* pass)
 	if (fd < 0) {
 		pdie("error creating file");
 	}
-	close(fd);
 	return 0;
 }
