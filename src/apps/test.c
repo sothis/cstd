@@ -1,15 +1,9 @@
 #include "cstd.h"
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <fcntl.h>
-#include <unistd.h>
-#include <inttypes.h>
-#include <string.h>
-
+#include "kfile.h"
 
 int cstd_main(int argc, char* argv[], char* envp[])
 {
+#if 0
 	int fd0, fd1, fd2, fd3;
 
 	fd0 = file_create_rw_with_hidden_tmp("testfile0", 0, 00644);
@@ -26,7 +20,12 @@ int cstd_main(int argc, char* argv[], char* envp[])
 
 
 	file_sync_and_close_all();
+#endif
 
+	uint64_t uuid = 0;
+
+	for(uuid = 0; uuid < 10000000; uuid++)
+		kfile_create(uuid, 0);
 
 	return 0;
 }

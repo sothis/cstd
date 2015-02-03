@@ -43,3 +43,5 @@ struct kfile_t {
 	void*			key;
 	struct kfile_header_t	header;
 };
+
+int kfile_create(uint64_t uuid, const char* pass);
