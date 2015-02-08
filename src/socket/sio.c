@@ -200,6 +200,14 @@ int sio_set_keepalive(int sock, int32_t val)
 	return res;
 }
 
+int sio_set_ipv6_only(int af_inet6sock, int32_t val)
+{
+	int res;
+	res = setsockopt(af_inet6sock, IPPROTO_IPV6, IPV6_V6ONLY,
+		(const IO_BUF_TYPE*)&val, sizeof(int32_t));
+	return res;
+}
+
 int sio_set_recv_timeout(int sock, int32_t milliseconds)
 {
 	int res;

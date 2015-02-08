@@ -12,12 +12,142 @@
 #include "sdtl.h"
 #include <libk/libk.h>
 
+#include <sys/epoll.h>
+
 #define	IFCE		"127.0.0.1"
-#define PORT		4242
+#define PORT		"4242"
 #define REUSEADDR	1
 #define BACKLOG		10
 #define TESTFILE	"/home/sothis/rimg.bin.copy"
 
+const char* address_families[] = {
+	"AF_UNSPEC",
+	"AF_UNIX",
+	"AF_INET",
+	"AF_AX25",
+	"AF_IPX",
+	"AF_APPLETALK",
+	"AF_NETROM",
+	"AF_BRIDGE",
+	"AF_ATMPVC",
+	"AF_X25",
+	"AF_INET6",
+	"AF_ROSE",
+	"AF_DECnet",
+	"AF_NETBEUI",
+	"AF_SECURITY",
+	"AF_KEY",
+	"AF_NETLINK",
+	"AF_PACKET",
+	"AF_ASH",
+	"AF_ECONET",
+	"AF_ATMSVC",
+	"AF_RDS",
+	"AF_SNA",
+	"AF_IRDA",
+	"AF_PPPOX",
+	"AF_WANPIPE",
+	"AF_LLC",
+	"AF_IB",
+	"(address family not defined)",
+	"AF_CAN",
+	"AF_TIPC",
+	"AF_BLUETOOTH",
+	"AF_IUCV",
+	"AF_RXRPC",
+	"AF_ISDN",
+	"AF_PHONET",
+	"AF_IEEE802154",
+	"AF_CAIF",
+	"AF_ALG",
+	"AF_NFC",
+	"AF_VSOCK"
+};
+
+const char* socket_types[] = {
+	"SOCK_UNSPEC",
+	"SOCK_STREAM",
+	"SOCK_DGRAM",
+	"SOCK_RAW",
+	"SOCK_RDM",
+	"SOCK_SEQPACKET",
+	"SOCK_DCCP",
+	"SOCK_UNSPEC",
+	"SOCK_UNSPEC",
+	"SOCK_UNSPEC",
+	"SOCK_PACKET"
+};
+
+int fn(void)
+{
+	struct addrinfo filter, *servinfo, *p;
+	int r, fd = -1;
+
+	debug("debug");
+	info("info");
+	notice("notice");
+	warning("warning");
+	err("error");
+	crit("critical");
+	alert("alert");
+	emerg("emergency");
+
+
+	errno = 13;
+	pdie("test");
+
+	memset(&filter, 0, sizeof(filter));
+	/* supports also ipv4 after disabling IPV6_V6ONLY on the socket
+	 * (default on most systems, except windows) */
+	filter.ai_family = AF_INET6;
+	filter.ai_socktype = SOCK_STREAM; /* TCP */
+	filter.ai_protocol = 0; /* any */
+	filter.ai_flags = AI_PASSIVE; /* suitable for accepting connections */
+
+	if ((r = getaddrinfo(0, PORT, &filter, &servinfo)) != 0) {
+		fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(r));
+		exit(1);
+	}
+
+	for(p = servinfo; p != NULL; p = p->ai_next) {
+	#if 1
+		printf("ai_flags:\t%d\n", p->ai_flags);
+		printf("ai_family:\t%s\n", address_families[p->ai_family]);
+		printf("ai_socktype:\t%s\n", socket_types[p->ai_socktype]);
+		printf("ai_protocol:\t%d\n", p->ai_protocol);
+		printf("ai_canonname:\t%s\n", p->ai_canonname);
+	#endif
+		fd = socket(p->ai_family, p->ai_socktype, p->ai_protocol);
+		if (fd < 0) {
+			perror("unable to create socket");
+			continue;
+		}
+		/* ipv6_only is off per default according to RFC3493,
+		 * but windows has it on by default to maintain backwards
+		 * compatibility */
+	//	sio_set_ipv6_only(fd, 0);
+		sio_set_reuseaddr(fd, 1);
+		if (bind(fd, p->ai_addr, p->ai_addrlen) == -1) {
+			close(fd);
+			perror("bind1");
+			continue;
+		}
+		/* listen backlog to tune the accept() queue size
+		 * see /proc/sys/net/ipv4/tcp_max_syn_backlog for the queue
+		 * size of already accepted TCP connections */
+		if (listen(fd, 10)) {
+			perror("listen");
+			close(fd);
+			continue;
+		}
+		break;
+
+	}
+	getchar();
+	return 0;
+}
+
+#if 0
 static void log_client_accepted(int sock)
 {
 	struct sockaddr_in a;
@@ -104,22 +234,28 @@ static void add_new_client(int sock)
 	sio_close(sock);
 	return;
 }
+#endif
 
 int cstd_main(int argc, char* argv[], char* envp[])
 {
 	int res = 0;
 	int srv_sock = 0;
+#if 0
 	int new_client_sock = 0;
 	fd_set active_set;
 	fd_set read_set;
-
+#endif
 	if (k_run_unittests(0))
 		pdie("some of the libk unit tests failed.");
 
+	fn();
+#if 0
 	srv_sock = sio_listen4(IFCE, PORT, REUSEADDR, BACKLOG);
 	if (srv_sock < 0)
 		pdie("Couldn't create listening IPv4 socket.");
+#endif
 
+#if 0
 	FD_ZERO(&active_set);
 	if (srv_sock >= FD_SETSIZE)
 		pdie("socket larger or equal than FD_SETSIZE (%d).", srv_sock);
@@ -151,5 +287,6 @@ int cstd_main(int argc, char* argv[], char* envp[])
 	}
 
 	sio_close(srv_sock);
+#endif
 	return 0;
 }

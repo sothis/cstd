@@ -40,12 +40,23 @@ extern char* xstrdup(const char* string);
 extern char* xrealpath(char* path, int free_path_afterwards);
 extern const char* xstrerror(void);
 
+/* print onto syslog/stderr */
 extern void eprintf(int loglevel, char* format, ...);
 extern void veprintf(int loglevel, char* format, va_list valist);
+extern void debug(char* format, ...);
+extern void info(char* format, ...);
+extern void warning(char* format, ...);
+extern void notice(char* format, ...);
+extern void err(char* format, ...);
+extern void crit(char* format, ...);
+extern void alert(char* format, ...);
+extern void emerg(char* format, ...);
+
 /* die() prints the format string onto log and terminates the process
  * immediately without calling any atexit() handlers */
 extern void die(char* format, ...);
-/* pdie() is like die(), except that it prints out errno and strerror() */
+/* pdie() is like die(), except that it prints out additionally errno and
+ * strerror() */
 extern void pdie(char* format, ...);
 
 

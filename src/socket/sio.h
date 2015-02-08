@@ -38,6 +38,8 @@ int sio_set_linger(int sock, int32_t val, int16_t seconds);
 int sio_set_keepalive(int sock, int32_t val);
 int sio_set_recv_timeout(int sock, int32_t milliseconds);
 int sio_set_send_timeout(int sock, int32_t milliseconds);
+int sio_set_ipv6_only(int af_inet6sock, int32_t val);
+
 
 int sio_recv(int sock, void* out, int length, int flags);
 int sio_send(int sock, const void* in, int length, int flags);
