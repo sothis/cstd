@@ -274,10 +274,11 @@ int cstd_main(int argc, char* argv[], char* envp[])
 	if (statvfs("/home", &svfs)) {
 		pdie("statvfs()");
 	}
-	printf("inodes:\t%" PRIu64 "\n", svfs.f_files);
-	printf("used:\t%" PRIu64 "\n", svfs.f_files - svfs.f_ffree);
+	printf("inodes:\t\t%" PRIu64 "\n", svfs.f_files);
+	printf("used:\t\t%" PRIu64 "\n", svfs.f_files - svfs.f_ffree);
 	printf("free root:\t%" PRIu64 "\n", svfs.f_ffree);
 	printf("free user:\t%" PRIu64 "\n",svfs.f_favail);
+	printf("max name:\t%" PRIu64 "\n",svfs.f_namemax);
 
 
 
