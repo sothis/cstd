@@ -13,6 +13,7 @@
 #include <libk/libk.h>
 
 #include <sys/epoll.h>
+#include <sys/statvfs.h>
 
 #define	IFCE		"127.0.0.1"
 #define PORT		"4242"
@@ -236,6 +237,22 @@ static void add_new_client(int sock)
 }
 #endif
 
+#if 0
+struct statvfs {
+    unsigned long  f_bsize;    /* file system block size */
+    unsigned long  f_frsize;   /* fragment size */
+    fsblkcnt_t     f_blocks;   /* size of fs in f_frsize units */
+    fsblkcnt_t     f_bfree;    /* # free blocks */
+    fsblkcnt_t     f_bavail;   /* # free blocks for unprivileged users */
+    fsfilcnt_t     f_files;    /* # inodes */
+    fsfilcnt_t     f_ffree;    /* # free inodes */
+    fsfilcnt_t     f_favail;   /* # free inodes for unprivileged users */
+    unsigned long  f_fsid;     /* file system ID */
+    unsigned long  f_flag;     /* mount flags */
+    unsigned long  f_namemax;  /* maximum filename length */
+};
+#endif
+
 int cstd_main(int argc, char* argv[], char* envp[])
 {
 	int res = 0;
@@ -248,7 +265,22 @@ int cstd_main(int argc, char* argv[], char* envp[])
 	if (k_run_unittests(0))
 		pdie("some of the libk unit tests failed.");
 
-	fn();
+	// fn();
+
+	struct statvfs svfs;
+
+	memset(&svfs, 0, sizeof(struct statvfs));
+
+	if (statvfs("/home", &svfs)) {
+		pdie("statvfs()");
+	}
+	printf("inodes:\t%" PRIu64 "\n", svfs.f_files);
+	printf("used:\t%" PRIu64 "\n", svfs.f_files - svfs.f_ffree);
+	printf("free root:\t%" PRIu64 "\n", svfs.f_ffree);
+	printf("free user:\t%" PRIu64 "\n",svfs.f_favail);
+
+
+
 #if 0
 	srv_sock = sio_listen4(IFCE, PORT, REUSEADDR, BACKLOG);
 	if (srv_sock < 0)
