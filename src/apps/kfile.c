@@ -115,6 +115,7 @@ int kfile_create(uint64_t uuid, const char* pass)
 	int fd;
 	char path[20];
 	char fname[5];
+	kfile_t* kf;
 
 	if (mkpath(uuid, fname, path)) {
 		err("error creating path for given uuid ('%" PRIu64 "')", uuid);

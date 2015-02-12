@@ -33,7 +33,7 @@ typedef struct kfile_header_t {
 } __attribute__((packed)) kfile_header_t;
 /* <filename[256-1]><filedata> */
 
-struct kfile_t {
+typedef struct kfile_t {
 	int			fd;
 	k_hash_t*		hash;
 	k_sc_t*			scipher;
@@ -43,7 +43,7 @@ struct kfile_t {
 	uint8_t*		iobuf;
 	void*			key;
 	struct kfile_header_t	header;
-};
+} kfile_t;
 
 int kfile_create(uint64_t uuid, const char* pass);
 int kfile_close(int fd);
