@@ -28,7 +28,7 @@ int cstd_main(int argc, char* argv[], char* envp[])
 	//for(uuid = 0; uuid < 10000; uuid++)
 	//	kfile_create(uuid, 0);
 
-	fd = kfile_create(uuid, 0);
+	fd = kfile_create(uuid, "test");
 
 	/* do stuff */
 

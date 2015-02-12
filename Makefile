@@ -334,7 +334,8 @@ final-all-recursive:							\
 	$(BUILDDIR)/$(PROJECT_NAME)_server
 
 $(BUILDDIR)/$(PROJECT_NAME)_test:					\
-	$(OBJECTS_TEST) $(BUILDDIR)/$(PROJECT_NAME).a
+	$(OBJECTS_TEST) libk/build/gcc_release/libk.a			\
+	$(BUILDDIR)/$(PROJECT_NAME).a
 	$(print_ld) $(subst $(PWD)/,./,$(abspath $(@)))
 	@-mkdir -p $(dir $(@))
 ifdef PLAT_DARWIN

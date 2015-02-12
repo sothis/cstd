@@ -1,6 +1,7 @@
 #include "cstd.h"
 #include "kfile.h"
 #include "xio.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -105,12 +106,17 @@ int _kfile_write_header(int fd)
 	strcpy(header.magic, KFILE_MAGIC);
 	strcpy(header.version, KFILE_VERSION);
 	header.hashfunction = HASHSUM_SKEIN_512;
+	header.hashsize = 0;
+	header.cipher = BLK_CIPHER_AES;
+	header.ciphermode = BLK_CIPHER_MODE_CTR;
+	header.keysize = 256;
+
 
 
 	return xwrite(fd, &header, sizeof(kfile_header_t));
 }
 
-int kfile_create(uint64_t uuid, const char* pass)
+int kfile_create(uint64_t uuid, const char* low_entropy_password)
 {
 	int fd;
 	char path[20];
@@ -126,7 +132,35 @@ int kfile_create(uint64_t uuid, const char* pass)
 	if (fd < 0)
 		err("error creating file '%s' in directory '%s'", fname, path);
 
-	_kfile_write_header(fd);
+
+	kf = xcalloc(1, sizeof(kfile_t));
+	kf->iobuf = xmalloc(KFILE_IOBUF_SIZE);
+
+
+	kf->fd = fd;
+	kf->header.hashfunction = HASHSUM_SKEIN_512;
+	kf->header.hashsize = 512;
+	kf->header.cipher = BLK_CIPHER_AES;
+	kf->header.ciphermode = BLK_CIPHER_MODE_CTR;
+	kf->header.keysize = 256;
+
+
+
+	kf->hash = k_hash_init(kf->header.hashfunction, kf->header.hashsize);
+//	if (!kf->hash) { ... }
+
+	kf->prng = k_prng_init(PRNG_PLATFORM);
+//	if (!kf->prng) { ... }
+
+
+	k_prng_update(kf->prng, kf->header.kdf_salt, KFILE_MAX_IV_LENGTH);
+
+	kf->key = _k_key_derive_simple1024(low_entropy_password, kf->header.kdf_salt, KFILE_KDF_ITERATIONS);
+
+	kf->scipher = k_sc_init_with_blockcipher(kf->header.cipher, kf->header.ciphermode, 0);
+	kf->nonce_size = k_sc_get_nonce_bytes(kf->scipher);
+
+//	_kfile_write_header(fd);
 
 	return fd;
 }
