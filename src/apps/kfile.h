@@ -9,8 +9,9 @@
 #define KFILE_KDF_ITERATIONS	(100000ull)
 
 struct kfile_header_t {
-	char		magic[5];
-	char		version[2];
+	/* magic and version are stored including der terminating zero byte */
+	char		magic[6];
+	char		version[4];
 	uint64_t	uuid;
 	uint64_t	filesize;
 	/* used hashfunction and hashsize, _all_ digests are calculated
@@ -45,3 +46,4 @@ struct kfile_t {
 };
 
 int kfile_create(uint64_t uuid, const char* pass);
+int kfile_close(int fd);

@@ -22,10 +22,17 @@ int cstd_main(int argc, char* argv[], char* envp[])
 	file_sync_and_close_all();
 #endif
 
-	uint64_t uuid = 0;
+	uint64_t uuid = 18446744073709551615ul;
+	int fd;
 
-	for(uuid = 0; uuid < 10000000; uuid++)
-		kfile_create(uuid, 0);
+	//for(uuid = 0; uuid < 10000; uuid++)
+	//	kfile_create(uuid, 0);
+
+	fd = kfile_create(uuid, 0);
+
+	/* do stuff */
+
+	kfile_close(fd);
 
 	return 0;
 }

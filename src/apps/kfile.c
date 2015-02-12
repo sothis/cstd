@@ -36,14 +36,17 @@ int mkdirp(const char* path)
 	return 0;
 }
 
-int mkpath(uint64_t uuid)
+int mkpath(uint64_t uuid, char* filename, char* pathname)
 {
-	int i, j, fd = -1;
+	int i, j;
 	char uuid_ascii[20];
 	char cpath[40];
 	char path[20];
 	char fname[5];
 	char* cwd = 0;
+
+	if (!filename || !pathname)
+		return -1;
 
 	memset(fname, 0, 5);
 	memset(path, 0, 20);
@@ -81,20 +84,32 @@ int mkpath(uint64_t uuid)
 	if (mkdirp(path))
 		return -1;
 
-	fd = open(fname, O_RDWR | O_CREAT | O_EXCL);
-	close(fd);
 	chdir(cwd), free(cwd);
+	strcpy(filename, fname);
+	strcpy(pathname, path);
 
-	return fd;
+	return 0;
 }
 
 int kfile_create(uint64_t uuid, const char* pass)
 {
 	int fd;
+	char path[20];
+	char fname[5];
 
-	fd = mkpath(uuid);
-	if (fd < 0) {
-		pdie("error creating file");
+	if (mkpath(uuid, fname, path)) {
+		err("error creating path for given uuid ('%" PRIu64 "')", uuid);
+		return -1;
 	}
-	return 0;
+
+	fd = file_create_rw_with_hidden_tmp(fname, path, 0400);
+	if (fd < 0)
+		err("error creating file '%s' in directory '%s'", fname, path);
+
+	return fd;
+}
+
+int kfile_close(int fd)
+{
+	return file_sync_and_close(fd);
 }
