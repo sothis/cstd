@@ -8,7 +8,7 @@
 #define KFILE_MAX_IV_LENGTH	(256ull)
 #define KFILE_KDF_ITERATIONS	(100000ull)
 
-struct kfile_header_t {
+typedef struct kfile_header_t {
 	/* magic and version are stored including der terminating zero byte */
 	char		magic[6];
 	char		version[4];
@@ -30,7 +30,7 @@ struct kfile_header_t {
 
 	uint8_t		headerdigest[KFILE_MAX_DIGEST_LENGTH];
 	uint8_t		datadigest[KFILE_MAX_DIGEST_LENGTH];
-} __attribute__((packed));
+} __attribute__((packed)) kfile_header_t;
 /* <filename[256-1]><filedata> */
 
 struct kfile_t {

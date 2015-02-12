@@ -1,5 +1,6 @@
 #include "cstd.h"
 #include "kfile.h"
+#include "xio.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -78,17 +79,35 @@ int mkpath(uint64_t uuid, char* filename, char* pathname)
 	}
 
 	cwd = get_current_dir_name();
-	if (!cwd)
-		pdie("couldn't get current working directory");
-
-	if (mkdirp(path))
+	if (!cwd) {
+		err("could not get current working directory");
 		return -1;
+	}
+
+	if (mkdirp(path)) {
+		err("could not create whole path '%s'", path);
+		chdir(cwd), free(cwd);
+		return -1;
+	}
 
 	chdir(cwd), free(cwd);
 	strcpy(filename, fname);
 	strcpy(pathname, path);
 
 	return 0;
+}
+
+int _kfile_write_header(int fd)
+{
+	kfile_header_t header;
+
+	memset(&header, 0, sizeof(kfile_header_t));
+	strcpy(header.magic, KFILE_MAGIC);
+	strcpy(header.version, KFILE_VERSION);
+	header.hashfunction = HASHSUM_SKEIN_512;
+
+
+	return xwrite(fd, &header, sizeof(kfile_header_t));
 }
 
 int kfile_create(uint64_t uuid, const char* pass)
@@ -105,6 +124,8 @@ int kfile_create(uint64_t uuid, const char* pass)
 	fd = file_create_rw_with_hidden_tmp(fname, path, 0400);
 	if (fd < 0)
 		err("error creating file '%s' in directory '%s'", fname, path);
+
+	_kfile_write_header(fd);
 
 	return fd;
 }

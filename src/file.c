@@ -15,6 +15,7 @@ struct file_t {
 	char*		name;
 	char*		tmp_name;
 	mode_t		mode;
+	void*		userdata;
 
 	struct file_t*	next;
 	struct file_t*	prev;
@@ -91,6 +92,33 @@ static struct file_t* _file_get_by_fd(int fd)
 	return res;
 }
 
+int file_set_userdata(int fd, void* userdata)
+{
+	struct file_t* file = 0;
+
+	file = _file_get_by_fd(fd);
+	if (!file) {
+		/* fd was not created by our API */
+		err("specified filedescriptor unknown");
+		return -1;
+	}
+	file->userdata = userdata;
+	return 0;
+}
+
+void* file_get_userdata(int fd)
+{
+	struct file_t* file = 0;
+
+	file = _file_get_by_fd(fd);
+	if (!file) {
+		/* fd was not created by our API */
+		err("specified filedescriptor unknown");
+		return 0;
+	}
+	return file->userdata;
+}
+
 int file_create_rw_with_hidden_tmp
 (const char* name, const char* parent_dir, mode_t mode)
 {
@@ -150,22 +178,23 @@ int file_sync_and_close(int fd)
 
 	file = _file_get_by_fd(fd);
 	if (!file) {
-		/* log this */
-		/* fd was not created by file_create() */
+		/* fd was not created by our API */
+		err("specified filedescriptor unknown");
 		return -1;
 	}
 
 	if (fsync(fd)) {
+		err("error fsync'ing file descriptor %u", fd);
 		r = -1;
 		goto out;
 	}
 	if (fchmod(fd, file->mode)) {
-		/* log this */
+		err("error changing file mode of descriptor %u", fd);
 		r = -1;
 		goto out;
 	}
 	if (rename(file->tmp_name, file->name)) {
-		/* log this */
+		err("error renaming temporary file");
 		r = -1;
 		goto out;
 	}
