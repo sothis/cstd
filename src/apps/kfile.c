@@ -98,22 +98,12 @@ int mkpath(uint64_t uuid, char* filename, char* pathname)
 	return 0;
 }
 
-int _kfile_write_header(int fd)
+int _kfile_write_header(kfile_t* kf)
 {
-	kfile_header_t header;
-
-	memset(&header, 0, sizeof(kfile_header_t));
-	strcpy(header.magic, KFILE_MAGIC);
-	strcpy(header.version, KFILE_VERSION);
-	header.hashfunction = HASHSUM_SKEIN_512;
-	header.hashsize = 0;
-	header.cipher = BLK_CIPHER_AES;
-	header.ciphermode = BLK_CIPHER_MODE_CTR;
-	header.keysize = 256;
 
 
 
-	return xwrite(fd, &header, sizeof(kfile_header_t));
+	return xwrite(kf->fd, &kf->header, sizeof(kfile_header_t));
 }
 
 int kfile_create(uint64_t uuid, const char* low_entropy_password)
@@ -136,31 +126,41 @@ int kfile_create(uint64_t uuid, const char* low_entropy_password)
 	kf = xcalloc(1, sizeof(kfile_t));
 	kf->iobuf = xmalloc(KFILE_IOBUF_SIZE);
 
-
 	kf->fd = fd;
+	strcpy(kf->header.magic, KFILE_MAGIC);
+	strcpy(kf->header.version, KFILE_VERSION);
+	kf->header.uuid = uuid;
 	kf->header.hashfunction = HASHSUM_SKEIN_512;
 	kf->header.hashsize = 512;
 	kf->header.cipher = BLK_CIPHER_AES;
 	kf->header.ciphermode = BLK_CIPHER_MODE_CTR;
 	kf->header.keysize = 256;
 
-
-
 	kf->hash = k_hash_init(kf->header.hashfunction, kf->header.hashsize);
-//	if (!kf->hash) { ... }
-
+	if (!kf->hash) {
+		pdie("k_hash_init()");
+	}
 	kf->prng = k_prng_init(PRNG_PLATFORM);
-//	if (!kf->prng) { ... }
-
+	if (!kf->prng) {
+		pdie("k_prng_init()");
+	}
 
 	k_prng_update(kf->prng, kf->header.kdf_salt, KFILE_MAX_IV_LENGTH);
-
-	kf->key = _k_key_derive_simple1024(low_entropy_password, kf->header.kdf_salt, KFILE_KDF_ITERATIONS);
-
-	kf->scipher = k_sc_init_with_blockcipher(kf->header.cipher, kf->header.ciphermode, 0);
+	kf->key = _k_key_derive_simple1024(low_entropy_password,
+		kf->header.kdf_salt, KFILE_KDF_ITERATIONS);
+	if (!kf->key) {
+		pdie("_k_key_derive_simple1024()");
+	}
+	kf->scipher = k_sc_init_with_blockcipher(kf->header.cipher,
+		kf->header.ciphermode, 0);
+	if (!kf->scipher) {
+		pdie("k_sc_init_with_blockcipher()");
+	}
 	kf->nonce_size = k_sc_get_nonce_bytes(kf->scipher);
 
-//	_kfile_write_header(fd);
+	printf("nonce size: %u\n", kf->nonce_size);
+
+	_kfile_write_header(kf);
 
 	return fd;
 }

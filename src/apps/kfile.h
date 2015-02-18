@@ -14,7 +14,7 @@ typedef struct kfile_header_t {
 	char		magic[6];
 	char		version[4];
 	uint64_t	uuid;
-	uint64_t	filesize;
+//	uint64_t	filesize;
 	/* used hashfunction and hashsize, _all_ digests are calculated
 	 * with that function. NOTE: string digests are calculated including
 	 * the terminating zero byte. */
@@ -30,10 +30,10 @@ typedef struct kfile_header_t {
 	uint32_t	keysize;
 
 	uint8_t		kdf_salt[KFILE_MAX_IV_LENGTH];
-	uint8_t		iv[KFILE_MAX_IV_LENGTH];
+//	uint8_t		iv[KFILE_MAX_IV_LENGTH];
 
-	uint8_t		headerdigest[KFILE_MAX_DIGEST_LENGTH];
-	uint8_t		datadigest[KFILE_MAX_DIGEST_LENGTH];
+//	uint8_t		headerdigest[KFILE_MAX_DIGEST_LENGTH];
+//	uint8_t		datadigest[KFILE_MAX_DIGEST_LENGTH];
 } __attribute__((packed)) kfile_header_t;
 /* <filename[256-1]><filedata> */
 
