@@ -161,11 +161,27 @@ int kfile_create(uint64_t uuid, const char* low_entropy_password)
 	printf("nonce size: %u\n", kf->nonce_size);
 
 	_kfile_write_header(kf);
-
+	if (file_set_userdata(fd, kf)) {
+		pdie("file_set_userdata()");
+	}
 	return fd;
 }
 
 int kfile_close(int fd)
 {
+	kfile_t* kf;
+
+	kf = file_get_userdata(fd);
+	if (!kf) {
+		pdie("file_get_userdata()");
+	}
+
+	k_hash_finish(kf->hash);
+	k_prng_finish(kf->prng);
+	k_sc_finish(kf->scipher);
+	k_free(kf->key);
+	free(kf->iobuf);
+	free(kf);
+
 	return file_sync_and_close(fd);
 }
