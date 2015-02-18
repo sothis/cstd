@@ -298,9 +298,7 @@ help:
 	@echo "  help        - print this"
 	@echo "  release     - build release version of $(PROJECT_NAME) (*)"
 	@echo "  debug       - build debug version of $(PROJECT_NAME)"
-	@echo "  install     - install release version of $(PROJECT_NAME) "\
-		"to '$DESTDIR'"
-	@echo "  clean       - recursively delete the output directory" \
+	@echo "  clean       - recursively delete the output directory"	\
 		"'$(OUTDIR)'"
 	@echo ""
 	@echo "(*) denotes the default target if none or 'all' is specified"
@@ -334,7 +332,7 @@ final-all-recursive:							\
 	$(BUILDDIR)/$(PROJECT_NAME)_server
 
 $(BUILDDIR)/$(PROJECT_NAME)_test:					\
-	$(OBJECTS_TEST) libk/build/gcc_release/libk.a			\
+	$(OBJECTS_TEST) libk/build/$(TOOLCHAIN)_$(CONF)/libk.a		\
 	$(BUILDDIR)/$(PROJECT_NAME).a
 	$(print_ld) $(subst $(PWD)/,./,$(abspath $(@)))
 	@-mkdir -p $(dir $(@))
@@ -342,7 +340,7 @@ ifdef PLAT_DARWIN
 	$(LD) -Wl,-rpath,"@loader_path/" $(MACARCHS) $(LDFLAGS)		\
 	$(LPATH) $(FRAMEWORKS) -o $(@) $(^) $(LIBRARIES)
 else
-	@export LD_RUN_PATH='$${ORIGIN}' && $(LD) $(MACARCHS) $(LDFLAGS) \
+	@export LD_RUN_PATH='$${ORIGIN}' && $(LD) $(MACARCHS) $(LDFLAGS)\
 	$(LPATH) -o $(@) $(^) $(LIBRARIES)
 endif
 
@@ -354,26 +352,27 @@ ifdef PLAT_DARWIN
 	$(LD) -Wl,-rpath,"@loader_path/" $(MACARCHS) $(LDFLAGS)		\
 	$(LPATH) $(FRAMEWORKS) -o $(@) $(^) $(LIBRARIES)
 else
-	@export LD_RUN_PATH='$${ORIGIN}' && $(LD) $(MACARCHS) $(LDFLAGS) \
+	@export LD_RUN_PATH='$${ORIGIN}' && $(LD) $(MACARCHS) $(LDFLAGS)\
 	$(LPATH) -o $(@) $(^) $(LIBRARIES)
 endif
 
 $(BUILDDIR)/$(PROJECT_NAME)_server:					\
-	$(OBJECTS_SERVER) libk/build/gcc_release/libk.a			\
+	$(OBJECTS_SERVER) libk/build/$(TOOLCHAIN)_$(CONF)/libk.a	\
 	$(BUILDDIR)/$(PROJECT_NAME).a
 	$(print_ld) $(subst $(PWD)/,./,$(abspath $(@)))
 	@-mkdir -p $(dir $(@))
 ifdef PLAT_DARWIN
 	$(LD) -Wl,-rpath,"@loader_path/" $(MACARCHS) $(LDFLAGS)		\
-	$(LPATH) $(FRAMEWORKS) -o $(@) $(^) libk/build/gcc_release/libk.a \
-	$(LIBRARIES)
+	$(LPATH) $(FRAMEWORKS) -o $(@) $(^) $(LIBRARIES)
 else
-	@export LD_RUN_PATH='$${ORIGIN}' && $(LD) $(MACARCHS) $(LDFLAGS) \
-	$(LPATH) -o $(@) $(^) libk/build/gcc_release/libk.a $(LIBRARIES)
+	@export LD_RUN_PATH='$${ORIGIN}' && $(LD) $(MACARCHS) $(LDFLAGS)\
+	$(LPATH) -o $(@) $(^) $(LIBRARIES)
 endif
 
-libk/build/gcc_release/libk.a:
-	$(MAKE) -C libk all
+libk/build/$(TOOLCHAIN)_$(CONF)/libk.a:
+	$(MAKE) $(VERB) -C libk TOOLCHAIN=$(TOOLCHAIN) $(CONF)
+
+.PHONY: libk/build/$(TOOLCHAIN)_$(CONF)/libk.a
 
 $(BUILDDIR)/.obj/$(PROJECT_NAME).ro: $(OBJECTS)
 	@$(print_ld) $(subst $(PWD)/,./,$(abspath $(@)))
@@ -413,7 +412,7 @@ $(BUILDDIR)/.obj/%_CXX_PIC.o: %.cpp
 	-mkdir -p $(dir $(@))
 	$(CXX) $(CXXFLAGS) $(DEFINES) -DPIC $(INCLUDES) -E -M -MT	\
 		"$(@) $(@:.o=.dep)" -o $(@:.o=.dep) $(<)
-	$(CXX) -fPIC $(CXXFLAGS) $(MACARCHS) $(DEFINES) -DPIC	\
+	$(CXX) -fPIC $(CXXFLAGS) $(MACARCHS) $(DEFINES) -DPIC		\
 		$(INCLUDES) -c -o $(@) $(<)
 
 -include $(DEPS)
