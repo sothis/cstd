@@ -10,6 +10,9 @@
 #include <inttypes.h>
 #include <sys/stat.h>
 
+/* ugly, currently needed for _k_key_derive_simple1024() */
+extern void k_free(void* mem);
+
 int mkdirp(const char* path)
 {
 	char* p, *tok;
@@ -124,7 +127,10 @@ int kfile_create(uint64_t uuid, const char* low_entropy_password)
 
 
 	kf = xcalloc(1, sizeof(kfile_t));
-	kf->iobuf = xmalloc(KFILE_IOBUF_SIZE);
+
+	if (file_set_userdata(fd, kf)) {
+		pdie("file_set_userdata()");
+	}
 
 	kf->fd = fd;
 	strcpy(kf->header.magic, KFILE_MAGIC);
@@ -135,6 +141,8 @@ int kfile_create(uint64_t uuid, const char* low_entropy_password)
 	kf->header.cipher = BLK_CIPHER_AES;
 	kf->header.ciphermode = BLK_CIPHER_MODE_CTR;
 	kf->header.keysize = 256;
+
+	kf->iobuf = xmalloc(KFILE_IOBUF_SIZE);
 
 	kf->hash = k_hash_init(kf->header.hashfunction, kf->header.hashsize);
 	if (!kf->hash) {
@@ -158,9 +166,10 @@ int kfile_create(uint64_t uuid, const char* low_entropy_password)
 	}
 	kf->nonce_size = k_sc_get_nonce_bytes(kf->scipher);
 
-	printf("nonce size: %u\n", kf->nonce_size);
+	if (xwrite(kf->fd, &kf->header, sizeof(kfile_header_t))) {
+		pdie("xwrite()");
+	}
 
-	_kfile_write_header(kf);
 	if (file_set_userdata(fd, kf)) {
 		pdie("file_set_userdata()");
 	}
