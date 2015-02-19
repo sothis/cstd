@@ -10,6 +10,11 @@
 #include <inttypes.h>
 #include <sys/stat.h>
 
+/* index must map exactly to enum kfile_version_t */
+static const char* kfile_version_strings[] = {
+	"1.0"
+};
+
 /* ugly, currently needed for _k_key_derive_simple1024() */
 extern void k_free(void* mem);
 
@@ -101,79 +106,101 @@ int mkpath(uint64_t uuid, char* filename, char* pathname)
 	return 0;
 }
 
-int _kfile_write_header(kfile_t* kf)
+static void _kfile_init_algortithms(kfile_t* kf, kfile_opts_t* opts)
 {
-
-
-
-	return xwrite(kf->fd, &kf->header, sizeof(kfile_header_t));
-}
-
-int kfile_create(uint64_t uuid, const char* low_entropy_password)
-{
-	int fd;
-	char path[20];
-	char fname[5];
-	kfile_t* kf;
-
-	if (mkpath(uuid, fname, path)) {
-		err("error creating path for given uuid ('%" PRIu64 "')", uuid);
-		return -1;
-	}
-
-	fd = file_create_rw_with_hidden_tmp(fname, path, 0400);
-	if (fd < 0)
-		err("error creating file '%s' in directory '%s'", fname, path);
-
-
-	kf = xcalloc(1, sizeof(kfile_t));
-
-	if (file_set_userdata(fd, kf)) {
-		pdie("file_set_userdata()");
-	}
-
-	kf->fd = fd;
-	strcpy(kf->header.magic, KFILE_MAGIC);
-	strcpy(kf->header.version, KFILE_VERSION);
-	kf->header.uuid = uuid;
-	kf->header.hashfunction = HASHSUM_SKEIN_512;
-	kf->header.hashsize = 512;
-	kf->header.cipher = BLK_CIPHER_AES;
-	kf->header.ciphermode = BLK_CIPHER_MODE_CTR;
-	kf->header.keysize = 256;
-
-	kf->iobuf = xmalloc(KFILE_IOBUF_SIZE);
-
-	kf->hash = k_hash_init(kf->header.hashfunction, kf->header.hashsize);
-	if (!kf->hash) {
-		pdie("k_hash_init()");
-	}
 	kf->prng = k_prng_init(PRNG_PLATFORM);
 	if (!kf->prng) {
-		pdie("k_prng_init()");
+		pdie("KFILE unable to initialize CSPRNG");
 	}
+	if (opts->hashfunction >= HASHSUM_MAX)
+		die("KFILE hash function not supported");
+	kf->hash = k_hash_init(kf->header.hashfunction, kf->header.hashsize);
+	if (!kf->hash) {
+		pdie("KFILE unable to initialize hash function");
+	}
+
+	if (opts->cipher >= BLK_CIPHER_MODE_MAX)
+		die("KFILE cipher not supported");
+	if (opts->cipher && !opts->ciphermode) {
+		/* plain streamcipher */
+		if (opts->cipher >= STREAM_CIPHER_MAX)
+			die("KFILE streamcipher not supported");
+		kf->scipher = k_sc_init(opts->cipher, opts->keysize);
+		if (!kf->scipher)
+			die("KFILE unable to initialize stream cipher");
+	}
+	if (opts->cipher && opts->ciphermode) {
+		/* blockcipher with a mode that produces a keystream */
+		if (opts->cipher >= BLK_CIPHER_MAX)
+			die("KFILE blockcipher not supported");
+		if (opts->ciphermode >= BLK_CIPHER_MODE_MAX)
+			die("KFILE blockcipher mode not supported");
+		if (k_bcmode_produces_keystream(opts->ciphermode) <= 0)
+			die("KFILE blockcipher mode doesn't "
+				"produce a keystream.");
+		kf->scipher = k_sc_init_with_blockcipher(opts->cipher,
+			opts->ciphermode, 0);
+		if (!kf->scipher)
+			die("KFILE unable to initialize stream cipher");
+	}
+
+	if (kf->scipher)
+		kf->noncebytes = k_sc_get_nonce_bytes(kf->scipher);
+}
+
+int kfile_create(kfile_opts_t* opts)
+{
+	kfile_t* kf;
+
+	kf = xcalloc(1, sizeof(kfile_t));
+	kf->iobuf = xmalloc(KFILE_IOBUF_SIZE);
+
+	if ((opts->version < 0) || (opts->version >= KFILE_VERSION_MAX))
+		die("KFILE version out of bounds");
+
+	if (!strlen(opts->low_entropy_pass))
+		die("KFILE password empty");
+
+	if (!strlen(opts->filename))
+		die("KFILE filename empty");
+
+	if (!opts->kdf_iterations)
+		die("KFILE kdf iterations mustn't be zero");
+
+	strcpy(kf->header.magic, KFILE_MAGIC);
+	strcpy(kf->header.version, kfile_version_strings[opts->version]);
+	kf->header.uuid = opts->uuid;
+	kf->header.hashfunction = opts->hashfunction;
+	kf->header.hashsize = opts->hashsize;
+	kf->header.cipher = opts->cipher;
+	kf->header.ciphermode = opts->ciphermode;
+	kf->header.keysize = opts->keysize;
+	kf->header.kdf_iterations = opts->kdf_iterations;
+
+	_kfile_init_algortithms(kf, opts);
 
 	k_prng_update(kf->prng, kf->header.kdf_salt, KFILE_MAX_IV_LENGTH);
-	kf->key = _k_key_derive_simple1024(low_entropy_password,
-		kf->header.kdf_salt, KFILE_KDF_ITERATIONS);
-	if (!kf->key) {
+	kf->key = _k_key_derive_simple1024(opts->low_entropy_pass,
+		kf->header.kdf_salt, opts->kdf_iterations);
+	if (!kf->key)
 		pdie("_k_key_derive_simple1024()");
-	}
-	kf->scipher = k_sc_init_with_blockcipher(kf->header.cipher,
-		kf->header.ciphermode, 0);
-	if (!kf->scipher) {
-		pdie("k_sc_init_with_blockcipher()");
-	}
-	kf->nonce_size = k_sc_get_nonce_bytes(kf->scipher);
 
-	if (xwrite(kf->fd, &kf->header, sizeof(kfile_header_t))) {
+	if (mkpath(opts->uuid, kf->filename, kf->path))
+		pdie("mkpath() for uuid " PRIu64 "\n", opts->uuid);
+
+	kf->fd = file_create_rw_with_hidden_tmp(kf->filename, kf->path,
+		opts->filemode);
+	if (kf->fd < 0)
+		pdie("error creating file '%s' in directory '%s'",
+			kf->filename, kf->path);
+
+	if (xwrite(kf->fd, &kf->header, sizeof(kfile_header_t)))
 		pdie("xwrite()");
-	}
 
-	if (file_set_userdata(fd, kf)) {
+	if (file_set_userdata(kf->fd, kf))
 		pdie("file_set_userdata()");
-	}
-	return fd;
+
+	return kf->fd;
 }
 
 int kfile_close(int fd)

@@ -1,6 +1,9 @@
 #include "cstd.h"
 #include "kfile.h"
 
+#include <stdio.h>
+#include <string.h>
+
 int cstd_main(int argc, char* argv[], char* envp[])
 {
 #if 0
@@ -21,18 +24,24 @@ int cstd_main(int argc, char* argv[], char* envp[])
 
 	file_sync_and_close_all();
 #endif
-
-	uint64_t uuid = 18446744073709551615ul;
 	int fd;
 
-	//for(uuid = 0; uuid < 10000; uuid++)
-	//	kfile_create(uuid, 0);
+	kfile_opts_t kfopts = {
+		.uuid			= 18446744073709551615ul,
+		.filemode		= 0400,
+		.version		= KFILE_VERSION_1_0,
+		.hashfunction		= HASHSUM_SKEIN_512,
+		.hashsize		= 512,
+		.cipher			= BLK_CIPHER_AES,
+		.ciphermode		= BLK_CIPHER_MODE_CTR,
+		.keysize		= 256,
+		.kdf_iterations		= 31337,
+		.filename		= { "some_document.pdf" },
+		.low_entropy_pass	= { "test1234" }
+	};
 
-	fd = kfile_create(uuid, "test");
-
-	/* do stuff */
+	fd = kfile_create(&kfopts);
 
 	kfile_close(fd);
-
 	return 0;
 }

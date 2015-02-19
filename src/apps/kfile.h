@@ -2,31 +2,28 @@
 #include <libk/libk.h>
 
 #define KFILE_MAGIC		("KFILE")
-#define KFILE_VERSION		("1.0")
 #define KFILE_MAX_NAME_LENGTH	(256ull)
 #define KFILE_MAX_DIGEST_LENGTH	(128ull)
 #define KFILE_MAX_IV_LENGTH	(128ull)
 #define KFILE_KDF_ITERATIONS	(100000ull)
 #define KFILE_IOBUF_SIZE	(65536ull)
 
+typedef enum kfile_version_t {
+	KFILE_VERSION_1_0	= 0,
+	KFILE_VERSION_MAX
+} kfile_version_t;
+
 typedef struct kfile_header_t {
-	/* magic and version are stored including der terminating zero byte */
+	/* Magic and version are stored including the terminating zero byte */
 	char		magic[6];
 	char		version[4];
 	uint64_t	uuid;
 //	uint64_t	filesize;
-	/* used hashfunction and hashsize, _all_ digests are calculated
-	 * with that function. NOTE: string digests are calculated including
-	 * the terminating zero byte. */
+	uint64_t	kdf_iterations;
 	uint32_t	hashfunction;
-	/* note: hashsize in bits might be 0 in order to use the default state
-	 * size of the specified hashfunction */
 	uint32_t	hashsize;
-	/* if unencrypted set cipher to 0 */
 	uint32_t	cipher;
-	/* if the used cipher is a plain streamcipher, set ciphermode to 0 */
 	uint32_t	ciphermode;
-	/* keysize in bits */
 	uint32_t	keysize;
 
 	uint8_t		kdf_salt[KFILE_MAX_IV_LENGTH];
@@ -43,11 +40,36 @@ typedef struct kfile_t {
 	k_sc_t*		scipher;
 	k_prng_t*	prng;
 
-	uint32_t	nonce_size;
+	size_t		noncebytes;
+	char		path[20];
+	char		filename[5];
 	unsigned char*	iobuf;
 	unsigned char*	key;
 	kfile_header_t	header;
 } kfile_t;
 
-int kfile_create(uint64_t uuid, const char* pass);
+typedef struct kfile_opts_t {
+	uint64_t	uuid;
+	mode_t		filemode;
+	kfile_version_t	version;
+	uint32_t	hashfunction;
+	/* Hashsize in bits.
+	 * Might be 0 in order to use the default state size of the
+	 * specified hash function. */
+	uint32_t	hashsize;
+	/* if unencrypted set cipher to 0 */
+	uint32_t	cipher;
+	/* If the used cipher is a plain streamcipher, set ciphermode to 0.
+	 * Otherwise only blockcipher modes are supported, that turn the
+	 * specified blockcipher into a streamcipher (e.g. OFB, CTR or GCM) */
+	uint32_t	ciphermode;
+	/* keysize in bits */
+	uint32_t	keysize;
+	/* must be greater than zero */
+	uint64_t	kdf_iterations;
+	char		filename[KFILE_MAX_NAME_LENGTH];
+	char		low_entropy_pass[KFILE_MAX_NAME_LENGTH];
+} kfile_opts_t;
+
+int kfile_create(kfile_opts_t* opts);
 int kfile_close(int fd);
