@@ -43,6 +43,8 @@ int cstd_main(int argc, char* argv[], char* envp[])
 
 	fd = kfile_create(&kfopts);
 
+	kfile_write(fd, "hello", 5);
+
 	kfile_close(fd);
 	return 0;
 }

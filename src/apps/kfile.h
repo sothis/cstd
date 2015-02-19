@@ -75,4 +75,7 @@ typedef struct kfile_opts_t {
 } kfile_opts_t;
 
 int kfile_create(kfile_opts_t* opts);
+
+int kfile_write(int fd, const void *buf, size_t nbyte);
+
 int kfile_close(int fd);

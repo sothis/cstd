@@ -109,8 +109,11 @@ int mkpath(uint64_t uuid, char* filename, char* pathname)
 	return 0;
 }
 
-static void _kfile_init_algortithms(kfile_t* kf, kfile_opts_t* opts)
+static void _kfile_init_algorithms(kfile_t* kf, kfile_opts_t* opts)
 {
+	unsigned char zero_nonce[KFILE_MAX_IV_LENGTH];
+	memset(zero_nonce, 0, KFILE_MAX_IV_LENGTH);
+
 	kf->prng = k_prng_init(PRNG_PLATFORM);
 	if (!kf->prng)
 		die("KFILE unable to initialize CSPRNG");
@@ -150,6 +153,23 @@ static void _kfile_init_algortithms(kfile_t* kf, kfile_opts_t* opts)
 	}
 
 	kf->noncebytes = k_sc_get_nonce_bytes(kf->scipher);
+	k_prng_update(kf->prng, kf->header.kdf_salt, KFILE_MAX_IV_LENGTH);
+	while (!memcmp(kf->header.kdf_salt, zero_nonce, KFILE_MAX_IV_LENGTH)) {
+		memset(kf->header.kdf_salt, 0, KFILE_MAX_IV_LENGTH);
+		k_prng_update(kf->prng, kf->header.kdf_salt,
+			KFILE_MAX_IV_LENGTH);
+	}
+	kf->key = _k_key_derive_simple1024(opts->low_entropy_pass,
+		kf->header.kdf_salt, opts->kdf_iterations);
+	if (!kf->key)
+		pdie("_k_key_derive_simple1024()");
+
+	k_prng_update(kf->prng, kf->header.iv, KFILE_MAX_IV_LENGTH);
+	while (!memcmp(kf->header.iv, zero_nonce, kf->noncebytes)) {
+		memset(kf->header.iv, 0, KFILE_MAX_IV_LENGTH);
+		k_prng_update(kf->prng, kf->header.iv, kf->noncebytes);
+	}
+	k_sc_set_key(kf->scipher, kf->header.iv, kf->key, kf->header.keysize);
 }
 
 int kfile_create(kfile_opts_t* opts)
@@ -185,15 +205,7 @@ int kfile_create(kfile_opts_t* opts)
 	kf->header.keysize = opts->keysize;
 	kf->header.kdf_iterations = opts->kdf_iterations;
 
-	_kfile_init_algortithms(kf, opts);
-
-	k_prng_update(kf->prng, kf->header.kdf_salt, KFILE_MAX_IV_LENGTH);
-	kf->key = _k_key_derive_simple1024(opts->low_entropy_pass,
-		kf->header.kdf_salt, opts->kdf_iterations);
-	if (!kf->key)
-		pdie("_k_key_derive_simple1024()");
-
-	k_prng_update(kf->prng, kf->header.iv, KFILE_MAX_IV_LENGTH);
+	_kfile_init_algorithms(kf, opts);
 
 	if (mkpath(opts->uuid, kf->filename, kf->path))
 		pdie("mkpath() for uuid " PRIu64 "\n", opts->uuid);
