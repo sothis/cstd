@@ -302,6 +302,10 @@ void kfile_final(kfile_write_fd_t fd)
 		pdie("KFILE kfile_write()");
 }
 
+kfile_read_fd_t kfile_open(kfile_open_opts_t* opts)
+{
+	return 0;
+}
 
 int kfile_close(kfile_fd_t fd)
 {

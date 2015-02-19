@@ -24,8 +24,7 @@ int cstd_main(int argc, char* argv[], char* envp[])
 
 	file_sync_and_close_all();
 #endif
-	int fd;
-
+	kfile_write_fd_t wfd;
 	kfile_create_opts_t kfcopts = {
 		.uuid			= 18446744073709551615ul,
 		.filemode		= 0400,
@@ -41,11 +40,21 @@ int cstd_main(int argc, char* argv[], char* envp[])
 		.low_entropy_pass	= { "test1234" }
 	};
 
-	fd = kfile_create(&kfcopts);
+	wfd = kfile_create(&kfcopts);
+	kfile_update(wfd, "hello ", 6);
+	kfile_update(wfd, "world", 5);
+	kfile_final(wfd);
+	kfile_close(wfd);
 
-	kfile_update(fd, "hello world", 11);
-	kfile_final(fd);
+	kfile_read_fd_t rfd;
+	kfile_open_opts_t kfoopts = {
+		.uuid			= 18446744073709551615ul,
+		.iobuf_size		= 65536,
+		.low_entropy_pass	= { "test1234" }
+	};
 
-	kfile_close(fd);
+	rfd = kfile_open(&kfoopts);
+	kfile_close(rfd);
+
 	return 0;
 }
