@@ -304,12 +304,15 @@ void kfile_final(kfile_write_fd_t fd)
 
 kfile_read_fd_t kfile_open(kfile_open_opts_t* opts)
 {
-	return 0;
+	return -1;
 }
 
 int kfile_close(kfile_fd_t fd)
 {
 	kfile_t* kf;
+
+	if (fd < 0)
+		return -1;
 
 	kf = file_get_userdata(fd);
 	if (!kf)
