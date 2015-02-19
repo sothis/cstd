@@ -162,7 +162,7 @@ static void _kfile_init_algorithms(kfile_t* kf, kfile_opts_t* opts)
 	kf->key = _k_key_derive_simple1024(opts->low_entropy_pass,
 		kf->header.kdf_salt, opts->kdf_iterations);
 	if (!kf->key)
-		pdie("_k_key_derive_simple1024()");
+		pdie("KFILE _k_key_derive_simple1024()");
 
 	k_prng_update(kf->prng, kf->header.iv, KFILE_MAX_IV_LENGTH);
 	while (!memcmp(kf->header.iv, zero_nonce, kf->noncebytes)) {
@@ -208,19 +208,22 @@ int kfile_create(kfile_opts_t* opts)
 	_kfile_init_algorithms(kf, opts);
 
 	if (mkpath(opts->uuid, kf->filename, kf->path))
-		pdie("mkpath() for uuid " PRIu64 "\n", opts->uuid);
+		pdie("KFILE mkpath() for uuid " PRIu64 "\n", opts->uuid);
 
 	kf->fd = file_create_rw_with_hidden_tmp(kf->filename, kf->path,
 		opts->filemode);
 	if (kf->fd < 0)
-		pdie("error creating file '%s' in directory '%s'",
+		pdie("KFILE error creating file '%s' in directory '%s'",
 			kf->filename, kf->path);
 
 	if (xwrite(kf->fd, &kf->header, sizeof(kfile_header_t)))
-		pdie("xwrite()");
+		pdie("KFILE xwrite()");
 
 	if (file_set_userdata(kf->fd, kf))
-		pdie("file_set_userdata()");
+		die("KFILE file_set_userdata()");
+
+	if (kfile_write(kf->fd, opts->filename, KFILE_MAX_NAME_LENGTH))
+		pdie("KFILE kfile_write()");
 
 	return kf->fd;
 }
@@ -233,7 +236,7 @@ int kfile_write(int fd, const void *buf, size_t nbyte)
 
 	kf = file_get_userdata(fd);
 	if (!kf)
-		pdie("file_get_userdata()");
+		pdie("KFILE file_get_userdata()");
 
 	size_t blocks = (nbyte / kf->iobuf_size);
 	size_t remaining = (nbyte % kf->iobuf_size);
