@@ -33,7 +33,7 @@ typedef struct kfile_header_t {
  * <filename[256]>
  * <filedata>
  * <datadigest[128(1024bit)]>
- * */
+*/
 
 typedef struct kfile_t {
 	int		fd;

@@ -178,7 +178,7 @@ kfile_write_fd_t kfile_create(kfile_create_opts_t* opts)
 {
 	kfile_t* kf;
 
-	if ((opts->version < 0) || (opts->version >= KFILE_VERSION_MAX))
+	if (opts->version >= KFILE_VERSION_MAX)
 		die("KFILE version out of bounds");
 
 	if (!strlen(opts->low_entropy_pass))

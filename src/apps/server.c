@@ -255,8 +255,10 @@ struct statvfs {
 
 int cstd_main(int argc, char* argv[], char* envp[])
 {
+#if 0
 	int res = 0;
 	int srv_sock = 0;
+#endif
 #if 0
 	int new_client_sock = 0;
 	fd_set active_set;
