@@ -52,7 +52,7 @@ typedef struct kfile_t {
 	kfile_header_t	header;
 } kfile_t;
 
-typedef struct kfile_opts_t {
+typedef struct kfile_create_opts_t {
 	uint64_t	uuid;
 	mode_t		filemode;
 	kfile_version_t	version;
@@ -77,10 +77,24 @@ typedef struct kfile_opts_t {
 	char		filename[KFILE_MAX_NAME_LENGTH];
 	/* padded with zero bytes */
 	char		low_entropy_pass[KFILE_MAX_NAME_LENGTH];
-} kfile_opts_t;
+} kfile_create_opts_t;
 
-int kfile_create(kfile_opts_t* opts);
+typedef struct kfile_open_opts_t {
+	uint64_t	uuid;
+	size_t		iobuf_size;
+	char		low_entropy_pass[KFILE_MAX_NAME_LENGTH];
+} kfile_open_opts_t;
 
-int kfile_write(int fd, const void *buf, size_t nbyte);
+typedef int kfile_write_fd_t;
+typedef int kfile_read_fd_t;
+typedef int kfile_fd_t;
 
-int kfile_close(int fd);
+kfile_write_fd_t kfile_create(kfile_create_opts_t* opts);
+kfile_read_fd_t kfile_open(kfile_open_opts_t* opts);
+
+int kfile_update(kfile_write_fd_t fd, const void *buf, size_t nbyte);
+void kfile_final(kfile_write_fd_t fd);
+
+int kfile_read(kfile_read_fd_t fd, const void *buf, size_t nbyte);
+
+int kfile_close(kfile_fd_t fd);

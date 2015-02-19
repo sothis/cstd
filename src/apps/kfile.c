@@ -111,7 +111,7 @@ int mkpath(uint64_t uuid, char* filename, char* pathname)
 	return 0;
 }
 
-static void _kfile_init_algorithms(kfile_t* kf, kfile_opts_t* opts)
+static void _kfile_init_algorithms(kfile_t* kf, kfile_create_opts_t* opts)
 {
 	unsigned char zero_nonce[KFILE_MAX_IV_LENGTH];
 	memset(zero_nonce, 0, KFILE_MAX_IV_LENGTH);
@@ -174,7 +174,7 @@ static void _kfile_init_algorithms(kfile_t* kf, kfile_opts_t* opts)
 	k_sc_set_key(kf->scipher, kf->header.iv, kf->key, kf->header.keysize);
 }
 
-int kfile_create(kfile_opts_t* opts)
+kfile_write_fd_t kfile_create(kfile_create_opts_t* opts)
 {
 	kfile_t* kf;
 
@@ -229,16 +229,16 @@ int kfile_create(kfile_opts_t* opts)
 	if (file_set_userdata(kf->fd, kf))
 		die("KFILE file_set_userdata()");
 
-	if (kfile_write(kf->fd, kf->headerdigest, KFILE_MAX_DIGEST_LENGTH))
+	if (kfile_update(kf->fd, kf->headerdigest, KFILE_MAX_DIGEST_LENGTH))
 		pdie("KFILE kfile_write()");
 
-	if (kfile_write(kf->fd, opts->filename, KFILE_MAX_NAME_LENGTH))
+	if (kfile_update(kf->fd, opts->filename, KFILE_MAX_NAME_LENGTH))
 		pdie("KFILE kfile_write()");
 
 	return kf->fd;
 }
 
-int kfile_write(int fd, const void *buf, size_t nbyte)
+int kfile_update(kfile_write_fd_t fd, const void *buf, size_t nbyte)
 {
 	kfile_t* kf;
 	size_t filebytes = 0;
@@ -288,7 +288,7 @@ int kfile_write(int fd, const void *buf, size_t nbyte)
 	return 0;
 }
 
-int kfile_close(int fd)
+void kfile_final(kfile_write_fd_t fd)
 {
 	kfile_t* kf;
 
@@ -297,9 +297,19 @@ int kfile_close(int fd)
 		pdie("file_get_userdata()");
 
 	k_hash_final(kf->hash, kf->datadigest);
-//	dumphx("datadigest", kf->datadigest, 64);
-	if (kfile_write(kf->fd, kf->datadigest, KFILE_MAX_DIGEST_LENGTH))
+
+	if (kfile_update(kf->fd, kf->datadigest, KFILE_MAX_DIGEST_LENGTH))
 		pdie("KFILE kfile_write()");
+}
+
+
+int kfile_close(kfile_fd_t fd)
+{
+	kfile_t* kf;
+
+	kf = file_get_userdata(fd);
+	if (!kf)
+		pdie("file_get_userdata()");
 
 	k_hash_finish(kf->hash);
 	k_prng_finish(kf->prng);

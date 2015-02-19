@@ -26,7 +26,7 @@ int cstd_main(int argc, char* argv[], char* envp[])
 #endif
 	int fd;
 
-	kfile_opts_t kfopts = {
+	kfile_create_opts_t kfcopts = {
 		.uuid			= 18446744073709551615ul,
 		.filemode		= 0400,
 		.version		= KFILE_VERSION_0_1,
@@ -41,9 +41,10 @@ int cstd_main(int argc, char* argv[], char* envp[])
 		.low_entropy_pass	= { "test1234" }
 	};
 
-	fd = kfile_create(&kfopts);
+	fd = kfile_create(&kfcopts);
 
-	kfile_write(fd, "hello", 5);
+	kfile_update(fd, "hello world", 11);
+	kfile_final(fd);
 
 	kfile_close(fd);
 	return 0;
