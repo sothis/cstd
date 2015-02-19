@@ -100,6 +100,7 @@ BUILDDIR	:= $(OUTDIR)/$(TOOLCHAIN)_$(CONF)
 
 LIBRARIES	+= -lpthread
 
+INCLUDES	+= -I.
 INCLUDES	+= -I./sdtl/src
 INCLUDES	+= -I./sdtl/include
 

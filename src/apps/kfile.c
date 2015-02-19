@@ -10,6 +10,8 @@
 #include <inttypes.h>
 #include <sys/stat.h>
 
+#include "libk/src/utils/dumphx.h"
+
 #define KFILE_MAGIC		("KFILE")
 
 /* index must map exactly to enum kfile_version_t */
@@ -219,8 +221,16 @@ int kfile_create(kfile_opts_t* opts)
 	if (xwrite(kf->fd, &kf->header, sizeof(kfile_header_t)))
 		pdie("KFILE xwrite()");
 
+	k_hash_update(kf->hash, &kf->header, sizeof(kfile_header_t));
+	k_hash_final(kf->hash, kf->headerdigest);
+//	dumphx("headerdigest", kf->headerdigest, 64);
+	k_hash_reset(kf->hash);
+
 	if (file_set_userdata(kf->fd, kf))
 		die("KFILE file_set_userdata()");
+
+	if (kfile_write(kf->fd, kf->headerdigest, KFILE_MAX_DIGEST_LENGTH))
+		pdie("KFILE kfile_write()");
 
 	if (kfile_write(kf->fd, opts->filename, KFILE_MAX_NAME_LENGTH))
 		pdie("KFILE kfile_write()");
@@ -285,6 +295,11 @@ int kfile_close(int fd)
 	kf = file_get_userdata(fd);
 	if (!kf)
 		pdie("file_get_userdata()");
+
+	k_hash_final(kf->hash, kf->datadigest);
+//	dumphx("datadigest", kf->datadigest, 64);
+	if (kfile_write(kf->fd, kf->datadigest, KFILE_MAX_DIGEST_LENGTH))
+		pdie("KFILE kfile_write()");
 
 	k_hash_finish(kf->hash);
 	k_prng_finish(kf->prng);

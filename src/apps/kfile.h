@@ -1,9 +1,9 @@
 #include "cstd.h"
 #include <libk/libk.h>
 
-#define KFILE_MAX_NAME_LENGTH	(256ull)
-#define KFILE_MAX_DIGEST_LENGTH	(128ull)
-#define KFILE_MAX_IV_LENGTH	(128ull)
+#define KFILE_MAX_NAME_LENGTH	(256ull) /* 255 byte + 1 zero byte */
+#define KFILE_MAX_DIGEST_LENGTH	(128ull) /* 1024 bit */
+#define KFILE_MAX_IV_LENGTH	(128ull) /* 1024 bit */
 
 typedef enum kfile_version_t {
 	KFILE_VERSION_0_1	= 0,
@@ -12,11 +12,12 @@ typedef enum kfile_version_t {
 } kfile_version_t;
 
 typedef struct kfile_header_t {
-	/* Magic and version are stored including the terminating zero byte */
+	/* Magic and version are stored including the terminating zero byte
+	 * on disk. */
 	char		magic[6];
 	char		version[4];
 	uint64_t	uuid;
-//	uint64_t	filesize;
+	uint64_t	filesize;
 	uint64_t	kdf_iterations;
 	uint32_t	hashfunction;
 	uint32_t	hashsize;
@@ -26,11 +27,13 @@ typedef struct kfile_header_t {
 
 	uint8_t		kdf_salt[KFILE_MAX_IV_LENGTH];
 	uint8_t		iv[KFILE_MAX_IV_LENGTH];
-
-//	uint8_t		headerdigest[KFILE_MAX_DIGEST_LENGTH];
-//	uint8_t		datadigest[KFILE_MAX_DIGEST_LENGTH];
 } __attribute__((packed)) kfile_header_t;
-/* <filename[256]><filedata> */
+/* encrypted:
+ * <headerdigest[128(1024bit)]>
+ * <filename[256]>
+ * <filedata>
+ * <datadigest[128(1024bit)]>
+ * */
 
 typedef struct kfile_t {
 	int		fd;
@@ -44,6 +47,8 @@ typedef struct kfile_t {
 	size_t		iobuf_size;
 	unsigned char*	iobuf;
 	unsigned char*	key;
+	unsigned char	headerdigest[KFILE_MAX_DIGEST_LENGTH];
+	unsigned char	datadigest[KFILE_MAX_DIGEST_LENGTH];
 	kfile_header_t	header;
 } kfile_t;
 
