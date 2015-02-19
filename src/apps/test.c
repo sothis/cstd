@@ -29,13 +29,14 @@ int cstd_main(int argc, char* argv[], char* envp[])
 	kfile_opts_t kfopts = {
 		.uuid			= 18446744073709551615ul,
 		.filemode		= 0400,
-		.version		= KFILE_VERSION_1_0,
+		.version		= KFILE_VERSION_0_1,
 		.hashfunction		= HASHSUM_SKEIN_512,
 		.hashsize		= 512,
 		.cipher			= BLK_CIPHER_AES,
 		.ciphermode		= BLK_CIPHER_MODE_CTR,
 		.keysize		= 256,
-		.kdf_iterations		= 31337,
+		.kdf_iterations		= 130003,
+		.iobuf_size		= 65536,
 		.filename		= { "some_document.pdf" },
 		.low_entropy_pass	= { "test1234" }
 	};

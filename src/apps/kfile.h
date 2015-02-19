@@ -1,15 +1,13 @@
 #include "cstd.h"
 #include <libk/libk.h>
 
-#define KFILE_MAGIC		("KFILE")
 #define KFILE_MAX_NAME_LENGTH	(256ull)
 #define KFILE_MAX_DIGEST_LENGTH	(128ull)
 #define KFILE_MAX_IV_LENGTH	(128ull)
-#define KFILE_KDF_ITERATIONS	(100000ull)
-#define KFILE_IOBUF_SIZE	(65536ull)
 
 typedef enum kfile_version_t {
-	KFILE_VERSION_1_0	= 0,
+	KFILE_VERSION_0_1	= 0,
+	KFILE_VERSION_1_0	= 1,
 	KFILE_VERSION_MAX
 } kfile_version_t;
 
@@ -27,12 +25,12 @@ typedef struct kfile_header_t {
 	uint32_t	keysize;
 
 	uint8_t		kdf_salt[KFILE_MAX_IV_LENGTH];
-//	uint8_t		iv[KFILE_MAX_IV_LENGTH];
+	uint8_t		iv[KFILE_MAX_IV_LENGTH];
 
 //	uint8_t		headerdigest[KFILE_MAX_DIGEST_LENGTH];
 //	uint8_t		datadigest[KFILE_MAX_DIGEST_LENGTH];
 } __attribute__((packed)) kfile_header_t;
-/* <filename[256-1]><filedata> */
+/* <filename[256]><filedata> */
 
 typedef struct kfile_t {
 	int		fd;
@@ -43,6 +41,7 @@ typedef struct kfile_t {
 	size_t		noncebytes;
 	char		path[20];
 	char		filename[5];
+	size_t		iobuf_size;
 	unsigned char*	iobuf;
 	unsigned char*	key;
 	kfile_header_t	header;
@@ -57,7 +56,7 @@ typedef struct kfile_opts_t {
 	 * Might be 0 in order to use the default state size of the
 	 * specified hash function. */
 	uint32_t	hashsize;
-	/* if unencrypted set cipher to 0 */
+	/* mustn't be zero, kfiles are always encrypted */
 	uint32_t	cipher;
 	/* If the used cipher is a plain streamcipher, set ciphermode to 0.
 	 * Otherwise only blockcipher modes are supported, that turn the
@@ -65,9 +64,13 @@ typedef struct kfile_opts_t {
 	uint32_t	ciphermode;
 	/* keysize in bits */
 	uint32_t	keysize;
-	/* must be greater than zero */
+	/* mustn't be zero */
 	uint64_t	kdf_iterations;
+	/* mustn't be zero */
+	size_t		iobuf_size;
+	/* padded with zero bytes */
 	char		filename[KFILE_MAX_NAME_LENGTH];
+	/* padded with zero bytes */
 	char		low_entropy_pass[KFILE_MAX_NAME_LENGTH];
 } kfile_opts_t;
 

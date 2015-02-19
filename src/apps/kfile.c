@@ -10,8 +10,11 @@
 #include <inttypes.h>
 #include <sys/stat.h>
 
+#define KFILE_MAGIC		("KFILE")
+
 /* index must map exactly to enum kfile_version_t */
 static const char* kfile_version_strings[] = {
+	"0.1",
 	"1.0"
 };
 
@@ -109,19 +112,20 @@ int mkpath(uint64_t uuid, char* filename, char* pathname)
 static void _kfile_init_algortithms(kfile_t* kf, kfile_opts_t* opts)
 {
 	kf->prng = k_prng_init(PRNG_PLATFORM);
-	if (!kf->prng) {
-		pdie("KFILE unable to initialize CSPRNG");
-	}
+	if (!kf->prng)
+		die("KFILE unable to initialize CSPRNG");
+
 	if (opts->hashfunction >= HASHSUM_MAX)
 		die("KFILE hash function not supported");
-	kf->hash = k_hash_init(kf->header.hashfunction, kf->header.hashsize);
-	if (!kf->hash) {
-		pdie("KFILE unable to initialize hash function");
-	}
 
-	if (opts->cipher >= BLK_CIPHER_MODE_MAX)
-		die("KFILE cipher not supported");
-	if (opts->cipher && !opts->ciphermode) {
+	kf->hash = k_hash_init(kf->header.hashfunction, kf->header.hashsize);
+	if (!kf->hash)
+		die("KFILE unable to initialize hash function");
+
+	if (!opts->cipher)
+		die("KFILE no cipher specified");
+
+	if (!opts->ciphermode) {
 		/* plain streamcipher */
 		if (opts->cipher >= STREAM_CIPHER_MAX)
 			die("KFILE streamcipher not supported");
@@ -129,7 +133,8 @@ static void _kfile_init_algortithms(kfile_t* kf, kfile_opts_t* opts)
 		if (!kf->scipher)
 			die("KFILE unable to initialize stream cipher");
 	}
-	if (opts->cipher && opts->ciphermode) {
+
+	if (opts->ciphermode) {
 		/* blockcipher with a mode that produces a keystream */
 		if (opts->cipher >= BLK_CIPHER_MAX)
 			die("KFILE blockcipher not supported");
@@ -144,16 +149,12 @@ static void _kfile_init_algortithms(kfile_t* kf, kfile_opts_t* opts)
 			die("KFILE unable to initialize stream cipher");
 	}
 
-	if (kf->scipher)
-		kf->noncebytes = k_sc_get_nonce_bytes(kf->scipher);
+	kf->noncebytes = k_sc_get_nonce_bytes(kf->scipher);
 }
 
 int kfile_create(kfile_opts_t* opts)
 {
 	kfile_t* kf;
-
-	kf = xcalloc(1, sizeof(kfile_t));
-	kf->iobuf = xmalloc(KFILE_IOBUF_SIZE);
 
 	if ((opts->version < 0) || (opts->version >= KFILE_VERSION_MAX))
 		die("KFILE version out of bounds");
@@ -166,6 +167,13 @@ int kfile_create(kfile_opts_t* opts)
 
 	if (!opts->kdf_iterations)
 		die("KFILE kdf iterations mustn't be zero");
+
+	if (!opts->iobuf_size)
+		die("KFILE I/O buffer size mustn't be zero");
+
+	kf = xcalloc(1, sizeof(kfile_t));
+	kf->iobuf_size = opts->iobuf_size;
+	kf->iobuf = xmalloc(opts->iobuf_size);
 
 	strcpy(kf->header.magic, KFILE_MAGIC);
 	strcpy(kf->header.version, kfile_version_strings[opts->version]);
@@ -185,6 +193,8 @@ int kfile_create(kfile_opts_t* opts)
 	if (!kf->key)
 		pdie("_k_key_derive_simple1024()");
 
+	k_prng_update(kf->prng, kf->header.iv, KFILE_MAX_IV_LENGTH);
+
 	if (mkpath(opts->uuid, kf->filename, kf->path))
 		pdie("mkpath() for uuid " PRIu64 "\n", opts->uuid);
 
@@ -203,14 +213,63 @@ int kfile_create(kfile_opts_t* opts)
 	return kf->fd;
 }
 
+int kfile_write(int fd, const void *buf, size_t nbyte)
+{
+	kfile_t* kf;
+	size_t filebytes = 0;
+	ssize_t nwritten, total = 0;
+
+	kf = file_get_userdata(fd);
+	if (!kf)
+		pdie("file_get_userdata()");
+
+	size_t blocks = (nbyte / kf->iobuf_size);
+	size_t remaining = (nbyte % kf->iobuf_size);
+
+	for (size_t i = 0; i < blocks; ++i) {
+		memmove(kf->iobuf, buf+(i*kf->iobuf_size), kf->iobuf_size);
+		k_hash_update(kf->hash, kf->iobuf, kf->iobuf_size);
+		k_sc_update(kf->scipher, kf->iobuf, kf->iobuf, kf->iobuf_size);
+		while (total != kf->iobuf_size) {
+			nwritten = write(kf->fd, kf->iobuf+total,
+				kf->iobuf_size-total);
+			if (nwritten < 0) {
+				if (errno == EINTR)
+					continue;
+				return -1;
+			}
+			total += nwritten;
+		}
+	}
+	filebytes += total;
+	total = 0;
+	if (remaining) {
+		memmove(kf->iobuf, buf+(blocks*kf->iobuf_size), remaining);
+		k_hash_update(kf->hash, kf->iobuf, remaining);
+		k_sc_update(kf->scipher, kf->iobuf, kf->iobuf, remaining);
+		while (total != remaining) {
+			nwritten = write(kf->fd, kf->iobuf+total,
+				remaining-total);
+			if (nwritten < 0) {
+				if (errno == EINTR)
+					continue;
+				return -1;
+			}
+			total += nwritten;
+		}
+	}
+	filebytes += total;
+
+	return 0;
+}
+
 int kfile_close(int fd)
 {
 	kfile_t* kf;
 
 	kf = file_get_userdata(fd);
-	if (!kf) {
+	if (!kf)
 		pdie("file_get_userdata()");
-	}
 
 	k_hash_finish(kf->hash);
 	k_prng_finish(kf->prng);
