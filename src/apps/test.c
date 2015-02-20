@@ -24,7 +24,7 @@ int cstd_main(int argc, char* argv[], char* envp[])
 
 	file_sync_and_close_all();
 #endif
-
+#if 1
 	kfile_write_fd_t wfd;
 	kfile_create_opts_t kfcopts = {
 		.uuid			= 18446744073709551615ul,
@@ -56,6 +56,7 @@ int cstd_main(int argc, char* argv[], char* envp[])
 
 	rfd = kfile_open(&kfoopts);
 	kfile_close(rfd);
+#endif
 
 	return 0;
 }

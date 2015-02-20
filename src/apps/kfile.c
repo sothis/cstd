@@ -58,18 +58,15 @@ out:
 	return r;
 }
 
-int mkpath(uint64_t uuid, char* filename, char* pathname)
+void xuuid_to_path(uint64_t uuid, char** compl, char** fpath, char** fname)
 {
 	int i, j;
 	char uuid_ascii[20];
 	char cpath[40];
 	char path[20];
-	char fname[5];
+	char name[5];
 
-	if (!filename || !pathname)
-		return -1;
-
-	memset(fname, 0, 5);
+	memset(name, 0, 5);
 	memset(path, 0, 20);
 	memset(cpath, 0, 40);
 	memset(uuid_ascii, 0, 20);
@@ -84,10 +81,10 @@ int mkpath(uint64_t uuid, char* filename, char* pathname)
 			if (i < 12)
 				path[j+4] = '/';
 		} else {
-			fname[0] = uuid_ascii[i];
-			fname[1] = uuid_ascii[i+1];
-			fname[2] = uuid_ascii[i+2];
-			fname[3] = uuid_ascii[i+3];
+			name[0] = uuid_ascii[i];
+			name[1] = uuid_ascii[i+1];
+			name[2] = uuid_ascii[i+2];
+			name[3] = uuid_ascii[i+3];
 		}
 
 		cpath[j] = uuid_ascii[i];
@@ -98,15 +95,14 @@ int mkpath(uint64_t uuid, char* filename, char* pathname)
 			cpath[j+4] = '/';
 	}
 
-	if (mkdirp(path)) {
-		err("could not create whole path '%s'", path);
-		return -1;
-	}
+	if (compl)
+		*compl = xstrdup(cpath);
+	if (fpath)
+		*fpath = xstrdup(path);
+	if (fname)
+		*fname = xstrdup(name);
 
-	strcpy(filename, fname);
-	strcpy(pathname, path);
-
-	return 0;
+	return;
 }
 
 static void _kfile_init_algorithms(kfile_t* kf, kfile_create_opts_t* opts)
@@ -207,8 +203,9 @@ kfile_write_fd_t kfile_create(kfile_create_opts_t* opts)
 
 	_kfile_init_algorithms(kf, opts);
 
-	if (mkpath(opts->uuid, kf->filename, kf->path))
-		pdie("KFILE mkpath() for uuid " PRIu64 "\n", opts->uuid);
+	xuuid_to_path(opts->uuid, 0, &kf->path, &kf->filename);
+	if (mkdirp(kf->path))
+		pdie("KFILE mkdirp() for uuid " PRIu64 "\n", opts->uuid);
 
 	kf->fd = file_create_rw_with_hidden_tmp(kf->filename, kf->path,
 		opts->filemode);
@@ -321,6 +318,8 @@ int kfile_close(kfile_fd_t fd)
 	k_sc_finish(kf->scipher);
 	k_free(kf->key);
 	free(kf->iobuf);
+	free(kf->filename);
+	free(kf->path);
 	free(kf);
 
 	return file_sync_and_close(fd);

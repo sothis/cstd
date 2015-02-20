@@ -42,8 +42,8 @@ typedef struct kfile_t {
 	k_prng_t*	prng;
 
 	size_t		noncebytes;
-	char		path[20];
-	char		filename[5];
+	char*		path;
+	char*		filename;
 	size_t		iobuf_size;
 	unsigned char*	iobuf;
 	unsigned char*	key;
