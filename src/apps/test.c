@@ -55,6 +55,8 @@ int cstd_main(int argc, char* argv[], char* envp[])
 	};
 
 	rfd = kfile_open(&kfoopts);
+	if (rfd < 0)
+		pdie("kfile_open()");
 	kfile_close(rfd);
 #endif
 

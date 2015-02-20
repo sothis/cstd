@@ -109,13 +109,18 @@ extern int proc_fork_and_wait(proc_t* args, int redirect);
 
 extern int fs_delete_deep(const char* directory);
 
+
+
 extern int file_create_rw_with_hidden_tmp
 (const char* name, const char* parent_dir, mode_t mode);
+void file_register_fd(int fd, char* path, char* name);
 
 extern int file_set_userdata(int fd, void* userdata);
 extern void* file_get_userdata(int fd);
-extern int file_sync_and_close(int fd);
 
+extern int file_sync_and_close(int fd);
 extern void file_sync_and_close_all(void);
+
+
 
 #endif /* _CSTD_H_ */

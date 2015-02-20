@@ -1,6 +1,10 @@
 #include "cstd.h"
 #include <libk/libk.h>
 
+#include <unistd.h>
+#include <sys/types.h>
+#include <dirent.h>
+
 #define KFILE_MAX_NAME_LENGTH	(256ull) /* 255 byte + 1 zero byte */
 #define KFILE_MAX_DIGEST_LENGTH	(128ull) /* 1024 bit */
 #define KFILE_MAX_IV_LENGTH	(128ull) /* 1024 bit */
@@ -37,6 +41,8 @@ typedef struct kfile_header_t {
 
 typedef struct kfile_t {
 	int		fd;
+	DIR*		path_ds;
+	int		path_fd;
 	k_hash_t*	hash;
 	k_sc_t*		scipher;
 	k_prng_t*	prng;

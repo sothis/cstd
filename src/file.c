@@ -92,6 +92,18 @@ static struct file_t* _file_get_by_fd(int fd)
 	return res;
 }
 
+void file_register_fd(int fd, char* path, char* name)
+{
+	struct file_t* file = 0;
+
+	file = xcalloc(1, sizeof(struct file_t));
+
+	file->name = xstrdup(name);
+	file->path = path_resolve_const(path);
+	file->fd = fd;
+	_file_add_to_list(file);
+}
+
 int file_set_userdata(int fd, void* userdata)
 {
 	struct file_t* file = 0;
@@ -170,7 +182,6 @@ out:
 	return r;
 }
 
-
 int file_sync_and_close(int fd)
 {
 	int r = 0;
@@ -183,20 +194,22 @@ int file_sync_and_close(int fd)
 		return -1;
 	}
 
-	if (fsync(fd)) {
-		err("error fsync'ing file descriptor %u", fd);
-		r = -1;
-		goto out;
-	}
-	if (fchmod(fd, file->mode)) {
-		err("error changing file mode of descriptor %u", fd);
-		r = -1;
-		goto out;
-	}
-	if (rename(file->tmp_name, file->name)) {
-		err("error renaming temporary file");
-		r = -1;
-		goto out;
+	if (file->tmp_name) {
+		if (fsync(fd)) {
+			err("error fsync'ing file descriptor %u", fd);
+			r = -1;
+			goto out;
+		}
+		if (fchmod(fd, file->mode)) {
+			err("error changing file mode of descriptor %u", fd);
+			r = -1;
+			goto out;
+		}
+		if (rename(file->tmp_name, file->name)) {
+			err("error renaming temporary file");
+			r = -1;
+			goto out;
+		}
 	}
 
 out:
@@ -205,7 +218,7 @@ out:
 	}
 	if (close(fd)) {
 		/* log this */
-		if (r == 0)
+		if ((r == 0) && file->tmp_name)
 			unlink(file->name);
 		r = -1;
 	}
@@ -214,7 +227,8 @@ out:
 
 	free(file->path);
 	free(file->name);
-	free(file->tmp_name);
+	if (file->tmp_name)
+		free(file->tmp_name);
 	free(file);
 
 	return r;

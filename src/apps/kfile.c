@@ -218,7 +218,6 @@ kfile_write_fd_t kfile_create(kfile_create_opts_t* opts)
 
 	k_hash_update(kf->hash, &kf->header, sizeof(kfile_header_t));
 	k_hash_final(kf->hash, kf->headerdigest);
-//	dumphx("headerdigest", kf->headerdigest, 64);
 	k_hash_reset(kf->hash);
 
 	if (file_set_userdata(kf->fd, kf))
@@ -299,7 +298,40 @@ void kfile_final(kfile_write_fd_t fd)
 
 kfile_read_fd_t kfile_open(kfile_open_opts_t* opts)
 {
-	return -1;
+	kfile_t* kf;
+
+	if (!opts->iobuf_size)
+		die("KFILE I/O buffer size mustn't be zero");
+
+	kf = xcalloc(1, sizeof(kfile_t));
+	kf->iobuf_size = opts->iobuf_size;
+	kf->iobuf = xmalloc(opts->iobuf_size);
+
+	xuuid_to_path(opts->uuid, 0, &kf->path, &kf->filename);
+
+	kf->path_ds = opendir(kf->path);
+	if (!kf->path_ds)
+		die("KFILE opendir()");
+
+	kf->path_fd = dirfd(kf->path_ds);
+	if (kf->path_fd < 0)
+		die("KFILE dirfd()");
+
+	kf->fd = openat(kf->path_fd, kf->filename, O_RDONLY | O_NOATIME);
+	if (kf->fd < 0)
+		pdie("KFILE openat()");
+
+	file_register_fd(kf->fd, kf->path, kf->filename);
+
+	if (file_set_userdata(kf->fd, kf))
+		die("KFILE file_set_userdata()");
+
+	if (xread(kf->fd, &kf->header, sizeof(kfile_header_t))
+		!= sizeof(kfile_header_t))
+		pdie("xread()");
+
+
+	return kf->fd;
 }
 
 int kfile_close(kfile_fd_t fd)
@@ -313,13 +345,22 @@ int kfile_close(kfile_fd_t fd)
 	if (!kf)
 		pdie("file_get_userdata()");
 
-	k_hash_finish(kf->hash);
-	k_prng_finish(kf->prng);
-	k_sc_finish(kf->scipher);
-	k_free(kf->key);
-	free(kf->iobuf);
-	free(kf->filename);
-	free(kf->path);
+	if (kf->path_ds)
+		closedir(kf->path_ds);
+	if (kf->hash)
+		k_hash_finish(kf->hash);
+	if (kf->prng)
+		k_prng_finish(kf->prng);
+	if (kf->scipher)
+		k_sc_finish(kf->scipher);
+	if (kf->key)
+		k_free(kf->key);
+	if (kf->iobuf)
+		free(kf->iobuf);
+	if (kf->filename)
+		free(kf->filename);
+	if (kf->path)
+		free(kf->path);
 	free(kf);
 
 	return file_sync_and_close(fd);
