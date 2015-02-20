@@ -16,3 +16,23 @@ int xwrite(int fd, const void* buf, size_t nbyte)
 	}
 	return 0;
 }
+
+ssize_t xread(int fd, void* buf, size_t nbyte)
+{
+	size_t total = 0;
+	ssize_t nread = 0;
+	while (total != nbyte) {
+		nread = read(fd, buf + total, nbyte - total);
+		if (nread < 0) {
+			if (errno == EINTR)
+				continue;
+			return -1;
+		}
+		if (!nread) {
+			/* EOF */
+			return total;
+		}
+		total += nread;
+	}
+	return nbyte;
+}

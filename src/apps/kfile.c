@@ -1,6 +1,7 @@
 #include "cstd.h"
 #include "kfile.h"
 #include "xio.h"
+#include "dir.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -26,29 +27,35 @@ extern void k_free(void* mem);
 int mkdirp(const char* path)
 {
 	char* p, *tok;
-	int e;
+	int e, r = 0;
 
 	if (!path || !strlen(path))
 		return -1;
 
 	p = xstrdup(path);
 
-	tok = strtok(p, "/");
+	if (dir_save_cwd())
+		pdie("dir_save_cwd()");
 
+	tok = strtok(p, "/");
 	while (tok) {
 		e = mkdir(tok, 0755);
 		if (e && (errno != EEXIST)) {
-			free(p);
-			return -1;
+			r = -1;
+			goto out;
 		}
 		if (chdir(tok)) {
-			free(p);
-			return -1;
+			r = -1;
+			goto out;
 		}
 		tok = strtok(0, "/");
 	}
+	r = 0;
+out:
+	if (dir_restore_cwd())
+		pdie("dir_restore_cwd()");
 	free(p);
-	return 0;
+	return r;
 }
 
 int mkpath(uint64_t uuid, char* filename, char* pathname)
@@ -58,7 +65,6 @@ int mkpath(uint64_t uuid, char* filename, char* pathname)
 	char cpath[40];
 	char path[20];
 	char fname[5];
-	char* cwd = 0;
 
 	if (!filename || !pathname)
 		return -1;
@@ -92,19 +98,11 @@ int mkpath(uint64_t uuid, char* filename, char* pathname)
 			cpath[j+4] = '/';
 	}
 
-	cwd = get_current_dir_name();
-	if (!cwd) {
-		err("could not get current working directory");
-		return -1;
-	}
-
 	if (mkdirp(path)) {
 		err("could not create whole path '%s'", path);
-		chdir(cwd), free(cwd);
 		return -1;
 	}
 
-	chdir(cwd), free(cwd);
 	strcpy(filename, fname);
 	strcpy(pathname, path);
 

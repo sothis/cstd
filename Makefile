@@ -123,6 +123,7 @@ SRC		+= ./src/string.c
 SRC		+= ./src/syslog.c
 SRC		+= ./src/file.c
 SRC		+= ./src/xio.c
+SRC		+= ./src/dir.c
 
 SRC		+= ./src/mp/cond.c
 SRC		+= ./src/mp/mutex.c

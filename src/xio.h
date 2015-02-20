@@ -7,6 +7,7 @@
  * bytes were written or -1 in case of an error with errno set
  * appropriately */
 extern int xwrite(int fd, const void* buf, size_t nbyte);
+extern ssize_t xread(int fd, void* buf, size_t nbyte);
 
 
 #endif /* _XIO_H_ */
