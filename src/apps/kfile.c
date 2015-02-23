@@ -348,6 +348,8 @@ int kfile_update(kfile_write_fd_t fd, const void *buf, size_t nbyte)
 	return 0;
 }
 
+/* TODO: read nbyte in chunks, due to limited kf->iobuf size */
+
 ssize_t kfile_read(kfile_read_fd_t fd, void* buf, size_t nbyte)
 {
 	kfile_t* kf;
@@ -366,7 +368,6 @@ again:
 			return nread;
 	}
 
-//	printf("decrypting %lu bytes\n", nread);
 	k_hash_update(kf->hash_ciphertext, kf->iobuf, nread);
 	k_sc_update(kf->scipher, kf->iobuf, kf->iobuf, nread);
 	k_hash_update(kf->hash_plaintext, kf->iobuf, nread);
