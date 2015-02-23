@@ -57,15 +57,16 @@ typedef struct kfile_t {
 	k_prng_t*	prng;
 
 	size_t		noncebytes;
+	size_t		digestbytes;
 	char*		path;
 	char*		filename;
 	size_t		iobuf_size;
 	unsigned char*	iobuf;
 	unsigned char*	key;
 	char		resourcename[KFILE_MAX_NAME_LENGTH];
-	unsigned char	headerdigest[KFILE_MAX_DIGEST_LENGTH];
-	unsigned char	datadigest[KFILE_MAX_DIGEST_LENGTH];
-	unsigned char	cipherdigest[KFILE_MAX_DIGEST_LENGTH];
+	unsigned char*	headerdigest;
+	unsigned char*	datadigest;
+	unsigned char*	cipherdigest;
 	kfile_header_t	header;
 } kfile_t;
 

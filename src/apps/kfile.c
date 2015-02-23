@@ -17,7 +17,7 @@
 #define KFILE_VERSION_LENGTH	(4)
 
 /* bits to bytes with possible padding zero-bits */
-#define BITSTOBYTES(x)		((x + 7 / 8))
+#define BITSTOBYTES(x)		(((x + 7) / 8))
 
 /* index must map exactly to enum kfile_version_t */
 static const char* kfile_version_strings[] = {
@@ -128,7 +128,21 @@ static void _kfile_init_algorithms_with_opts(kfile_t* kf, kfile_create_opts_t* o
 	if (opts->hashfunction >= HASHSUM_MAX)
 		die("KFILE hash function not supported");
 
-	kf->hash_plaintext = k_hash_init(kf->header.hashfunction, kf->header.hashsize);
+	/* disallow automatic hash size */
+	if (!kf->header.hashsize)
+		die("KFILE hash bits must be explicitely given");
+
+	/* limit hash size to 1024 bits for now */
+	if (kf->header.hashsize > 1024)
+		die("KFILE specified hash bits too high");
+
+	kf->digestbytes = BITSTOBYTES(kf->header.hashsize);
+	kf->headerdigest = xcalloc(1, kf->digestbytes);
+	kf->datadigest = xcalloc(1, kf->digestbytes);
+	kf->cipherdigest = xcalloc(1, kf->digestbytes);
+
+	kf->hash_plaintext = k_hash_init(kf->header.hashfunction,
+		kf->header.hashsize);
 	if (!kf->hash_plaintext)
 		die("KFILE unable to initialize hash function");
 
@@ -194,6 +208,14 @@ static void _kfile_init_algorithms_with_file(kfile_t* kf, kfile_open_opts_t* opt
 	kf->prng = k_prng_init(PRNG_PLATFORM);
 	if (!kf->prng)
 		die("KFILE unable to initialize CSPRNG");
+
+	if (!kf->header.hashsize || (kf->header.hashsize > 1024))
+		die("KFILE invalid hash size specified");
+
+	kf->digestbytes = BITSTOBYTES(kf->header.hashsize);
+	kf->headerdigest = xcalloc(1, kf->digestbytes);
+	kf->datadigest = xcalloc(1, kf->digestbytes);
+	kf->cipherdigest = xcalloc(1, kf->digestbytes);
 
 	kf->hash_plaintext = k_hash_init(kf->header.hashfunction,
 		kf->header.hashsize);
@@ -290,7 +312,7 @@ kfile_write_fd_t kfile_create(kfile_create_opts_t* opts)
 
 	_kfile_calculate_header_digest(kf);
 
-	if (kfile_update(kf->fd, kf->headerdigest, KFILE_MAX_DIGEST_LENGTH))
+	if (kfile_update(kf->fd, kf->headerdigest, kf->digestbytes))
 		pdie("KFILE kfile_write()");
 
 	if (kfile_update(kf->fd, opts->resourcename, KFILE_MAX_NAME_LENGTH))
@@ -388,12 +410,12 @@ void kfile_final(kfile_write_fd_t fd)
 
 	k_hash_final(kf->hash_plaintext, kf->datadigest);
 
-	if (kfile_update(kf->fd, kf->datadigest, KFILE_MAX_DIGEST_LENGTH))
+	if (kfile_update(kf->fd, kf->datadigest, kf->digestbytes))
 		pdie("KFILE kfile_write()");
 
 	k_hash_final(kf->hash_ciphertext, kf->cipherdigest);
 
-	if (xwrite(kf->fd, kf->cipherdigest, KFILE_MAX_DIGEST_LENGTH))
+	if (xwrite(kf->fd, kf->cipherdigest, kf->digestbytes))
 		pdie("KFILE unable to write checksum");
 }
 
@@ -460,7 +482,7 @@ static int _kfile_read_and_check_file_header(kfile_t* kf, kfile_open_opts_t* opt
 	_kfile_init_algorithms_with_file(kf, opts);
 	_kfile_calculate_header_digest(kf);
 
-	if (kfile_read(kf->fd, headerdigest_chk, KFILE_MAX_DIGEST_LENGTH) < 0) {
+	if (kfile_read(kf->fd, headerdigest_chk, kf->digestbytes) < 0) {
 		crit("KFILE unable to read from file");
 		return -1;
 	}
@@ -469,8 +491,7 @@ static int _kfile_read_and_check_file_header(kfile_t* kf, kfile_open_opts_t* opt
 		return -1;
 	}
 
-	if (memcmp(kf->headerdigest, headerdigest_chk,
-	KFILE_MAX_DIGEST_LENGTH)) {
+	if (memcmp(kf->headerdigest, headerdigest_chk, kf->digestbytes)) {
 		crit("KFILE header digest doesn't match");
 		return -1;
 	}
@@ -562,6 +583,12 @@ int kfile_close(kfile_fd_t fd)
 		free(kf->filename);
 	if (kf->path)
 		free(kf->path);
+	if (kf->headerdigest)
+		free(kf->headerdigest);
+	if (kf->datadigest)
+		free(kf->datadigest);
+	if (kf->cipherdigest)
+		free(kf->cipherdigest);
 	free(kf);
 
 	return file_sync_and_close(fd);
