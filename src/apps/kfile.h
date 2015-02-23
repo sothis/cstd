@@ -98,9 +98,9 @@ typedef int kfile_fd_t;
 kfile_write_fd_t kfile_create(kfile_create_opts_t* opts);
 kfile_read_fd_t kfile_open(kfile_open_opts_t* opts);
 
-int kfile_update(kfile_write_fd_t fd, const void *buf, size_t nbyte);
+int kfile_update(kfile_write_fd_t fd, const void* buf, size_t nbyte);
 void kfile_final(kfile_write_fd_t fd);
 
-int kfile_read(kfile_read_fd_t fd, const void *buf, size_t nbyte);
+ssize_t kfile_read(kfile_read_fd_t fd, void* buf, size_t nbyte);
 
 int kfile_close(kfile_fd_t fd);

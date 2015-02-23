@@ -14,6 +14,7 @@
 #include "libk/src/utils/dumphx.h"
 
 #define KFILE_MAGIC		("KFILE")
+#define KFILE_VERSION_LENGTH	(4)
 
 /* index must map exactly to enum kfile_version_t */
 static const char* kfile_version_strings[] = {
@@ -105,7 +106,14 @@ void xuuid_to_path(uint64_t uuid, char** compl, char** fpath, char** fname)
 	return;
 }
 
-static void _kfile_init_algorithms(kfile_t* kf, kfile_create_opts_t* opts)
+static void _kfile_calculate_header_digest(kfile_t* kf)
+{
+	k_hash_update(kf->hash, &kf->header, sizeof(kfile_header_t));
+	k_hash_final(kf->hash, kf->headerdigest);
+	k_hash_reset(kf->hash);
+}
+
+static void _kfile_init_algorithms_with_opts(kfile_t* kf, kfile_create_opts_t* opts)
 {
 	unsigned char zero_nonce[KFILE_MAX_IV_LENGTH];
 	memset(zero_nonce, 0, KFILE_MAX_IV_LENGTH);
@@ -165,7 +173,55 @@ static void _kfile_init_algorithms(kfile_t* kf, kfile_create_opts_t* opts)
 		memset(kf->header.iv, 0, KFILE_MAX_IV_LENGTH);
 		k_prng_update(kf->prng, kf->header.iv, kf->noncebytes);
 	}
-	k_sc_set_key(kf->scipher, kf->header.iv, kf->key, kf->header.keysize);
+	if (k_sc_set_key(kf->scipher, kf->header.iv, kf->key,
+	kf->header.keysize))
+		die("KFILE unable to set stream cipher key");
+}
+
+static void _kfile_init_algorithms_with_file(kfile_t* kf, kfile_open_opts_t* opts)
+{
+	unsigned char zero_nonce[KFILE_MAX_IV_LENGTH];
+	memset(zero_nonce, 0, KFILE_MAX_IV_LENGTH);
+
+	kf->prng = k_prng_init(PRNG_PLATFORM);
+	if (!kf->prng)
+		die("KFILE unable to initialize CSPRNG");
+
+	kf->hash = k_hash_init(kf->header.hashfunction, kf->header.hashsize);
+	if (!kf->hash)
+		die("KFILE unable to initialize hash function");
+
+
+	if (!kf->header.ciphermode) {
+		/* plain streamcipher */
+		kf->scipher = k_sc_init(kf->header.cipher, kf->header.keysize);
+		if (!kf->scipher)
+			die("KFILE unable to initialize stream cipher");
+	}
+
+	if (kf->header.ciphermode) {
+		/* blockcipher with a mode that produces a keystream */
+		if (k_bcmode_produces_keystream(kf->header.ciphermode) <= 0)
+			die("KFILE blockcipher mode doesn't "
+				"produce a keystream.");
+		kf->scipher = k_sc_init_with_blockcipher(kf->header.cipher,
+			kf->header.ciphermode, 0);
+		if (!kf->scipher)
+			die("KFILE unable to initialize stream cipher");
+	}
+
+	kf->noncebytes = k_sc_get_nonce_bytes(kf->scipher);
+
+	/* check iv and kdf_salt here against zero_nonce */
+
+	kf->key = _k_key_derive_simple1024(opts->low_entropy_pass,
+		kf->header.kdf_salt, kf->header.kdf_iterations);
+	if (!kf->key)
+		pdie("KFILE _k_key_derive_simple1024()");
+
+	if (k_sc_set_key(kf->scipher, kf->header.iv, kf->key,
+	kf->header.keysize))
+		die("KFILE unable to set stream cipher key");
 }
 
 kfile_write_fd_t kfile_create(kfile_create_opts_t* opts)
@@ -201,7 +257,7 @@ kfile_write_fd_t kfile_create(kfile_create_opts_t* opts)
 	kf->header.keysize = opts->keysize;
 	kf->header.kdf_iterations = opts->kdf_iterations;
 
-	_kfile_init_algorithms(kf, opts);
+	_kfile_init_algorithms_with_opts(kf, opts);
 
 	xuuid_to_path(opts->uuid, 0, &kf->path, &kf->filename);
 	if (mkdirp(kf->path))
@@ -216,9 +272,9 @@ kfile_write_fd_t kfile_create(kfile_create_opts_t* opts)
 	if (xwrite(kf->fd, &kf->header, sizeof(kfile_header_t)))
 		pdie("KFILE xwrite()");
 
-	k_hash_update(kf->hash, &kf->header, sizeof(kfile_header_t));
-	k_hash_final(kf->hash, kf->headerdigest);
-	k_hash_reset(kf->hash);
+	//dumphx("cfn", opts->filename, KFILE_MAX_NAME_LENGTH);
+	_kfile_calculate_header_digest(kf);
+	//dumphx("chd", kf->headerdigest, KFILE_MAX_DIGEST_LENGTH);
 
 	if (file_set_userdata(kf->fd, kf))
 		die("KFILE file_set_userdata()");
@@ -282,6 +338,29 @@ int kfile_update(kfile_write_fd_t fd, const void *buf, size_t nbyte)
 	return 0;
 }
 
+ssize_t kfile_read(kfile_read_fd_t fd, void* buf, size_t nbyte)
+{
+	kfile_t* kf;
+	ssize_t nread;
+
+	kf = file_get_userdata(fd);
+	if (!kf)
+		pdie("KFILE file_get_userdata()");
+
+again:
+	nread = read(kf->fd, kf->iobuf, nbyte);
+	if (nread < 0) {
+		if (errno == EINTR)
+			goto again;
+		else
+			return nread;
+	}
+//	printf("decrypting %lu bytes\n", nread);
+	k_sc_update(kf->scipher, kf->iobuf, kf->iobuf, nread);
+	memmove(buf, kf->iobuf, nread);
+	return nread;
+}
+
 void kfile_final(kfile_write_fd_t fd)
 {
 	kfile_t* kf;
@@ -296,12 +375,104 @@ void kfile_final(kfile_write_fd_t fd)
 		pdie("KFILE kfile_write()");
 }
 
+static int _kfile_determine_version(kfile_t* kf)
+{
+	int ver;
+
+	for(ver = 0; ver < KFILE_VERSION_MAX; ver++) {
+		if (!strcmp(kf->header.version, kfile_version_strings[ver]))
+			return ver;
+	}
+
+	return -1;
+}
+
+
+static int _kfile_read_and_check_file_header(kfile_t* kf, kfile_open_opts_t* opts)
+{
+	int		ver;
+	char		filename[KFILE_MAX_NAME_LENGTH];
+	unsigned char	headerdigest_chk[KFILE_MAX_DIGEST_LENGTH];
+
+	memset(filename ,0, KFILE_MAX_NAME_LENGTH);
+	memset(headerdigest_chk ,0, KFILE_MAX_DIGEST_LENGTH);
+
+	if (xread(kf->fd, &kf->header, sizeof(kfile_header_t))
+		!= sizeof(kfile_header_t))
+		pdie("xread()");
+
+	if (strlen(kf->header.magic)+1 != sizeof(KFILE_MAGIC))
+		return -1;
+
+	if (strlen(kf->header.version)+1 != KFILE_VERSION_LENGTH)
+		return -1;
+
+	if (memcmp(kf->header.magic, KFILE_MAGIC, sizeof(KFILE_MAGIC)))
+		return -1;
+
+	ver = _kfile_determine_version(kf);
+	if (ver < 0)
+		{ crit("KFILE unable to determine file version"); return -1; }
+
+	if (kf->header.hashfunction >= HASHSUM_MAX)
+		{ crit("KFILE unsupported digest algorithm"); return -1; }
+
+	if (kf->header.ciphermode) {
+		if (kf->header.ciphermode >= BLK_CIPHER_MODE_MAX) {
+			crit("KFILE unsupported block cipher mode");
+			return -1;
+		}
+		if (kf->header.cipher >= BLK_CIPHER_MAX) {
+			crit("KFILE unsupported block cipher algorithm");
+			return -1;
+		}
+	} else if (kf->header.cipher >= STREAM_CIPHER_MAX) {
+		crit("KFILE unsupported stream cipher algorithm");
+		return -1;
+	}
+
+	if (!kf->header.kdf_iterations)
+		{ crit("KFILE kdf iterations mustn't be zero"); return -1; }
+
+
+	_kfile_init_algorithms_with_file(kf, opts);
+
+
+	if (kfile_read(kf->fd, headerdigest_chk, KFILE_MAX_DIGEST_LENGTH) < 0) {
+		crit("KFILE unable to read from file");
+		return -1;
+	}
+	if (kfile_read(kf->fd, filename, KFILE_MAX_NAME_LENGTH) < 0) {
+		crit("KFILE unable to read from file");
+		return -1;
+	}
+
+	_kfile_calculate_header_digest(kf);
+
+	if (memcmp(kf->headerdigest, headerdigest_chk,
+	KFILE_MAX_DIGEST_LENGTH)) {
+		crit("KFILE header digest doesn't match");
+		return -1;
+	}
+
+
+#if 0
+	dumphx("hd", headerdigest_chk, KFILE_MAX_DIGEST_LENGTH);
+	dumphx("fn", filename, KFILE_MAX_NAME_LENGTH);
+#endif
+
+	return 0;
+}
+
 kfile_read_fd_t kfile_open(kfile_open_opts_t* opts)
 {
 	kfile_t* kf;
 
 	if (!opts->iobuf_size)
 		die("KFILE I/O buffer size mustn't be zero");
+
+	if (!strlen(opts->low_entropy_pass))
+		die("KFILE password empty");
 
 	kf = xcalloc(1, sizeof(kfile_t));
 	kf->iobuf_size = opts->iobuf_size;
@@ -326,10 +497,8 @@ kfile_read_fd_t kfile_open(kfile_open_opts_t* opts)
 	if (file_set_userdata(kf->fd, kf))
 		die("KFILE file_set_userdata()");
 
-	if (xread(kf->fd, &kf->header, sizeof(kfile_header_t))
-		!= sizeof(kfile_header_t))
-		pdie("xread()");
-
+	if (_kfile_read_and_check_file_header(kf, opts))
+		die("KFILE corrupt or invalid file header");
 
 	return kf->fd;
 }
