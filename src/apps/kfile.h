@@ -53,6 +53,7 @@ typedef struct kfile_t {
 	size_t		iobuf_size;
 	unsigned char*	iobuf;
 	unsigned char*	key;
+	char		resourcename[KFILE_MAX_NAME_LENGTH];
 	unsigned char	headerdigest[KFILE_MAX_DIGEST_LENGTH];
 	unsigned char	datadigest[KFILE_MAX_DIGEST_LENGTH];
 	kfile_header_t	header;
@@ -101,6 +102,7 @@ kfile_read_fd_t kfile_open(kfile_open_opts_t* opts);
 int kfile_update(kfile_write_fd_t fd, const void* buf, size_t nbyte);
 void kfile_final(kfile_write_fd_t fd);
 
+const char* kfile_get_resource_name(kfile_read_fd_t fd);
 ssize_t kfile_read(kfile_read_fd_t fd, void* buf, size_t nbyte);
 
 int kfile_close(kfile_fd_t fd);

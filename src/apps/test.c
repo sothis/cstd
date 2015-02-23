@@ -43,11 +43,13 @@ int cstd_main(int argc, char* argv[], char* envp[])
 
 	wfd = kfile_create(&kfcopts);
 	kfile_update(wfd, "hello ", 6);
-	kfile_update(wfd, "world", 5);
+	kfile_update(wfd, "world", 6);
 	kfile_final(wfd);
 	kfile_close(wfd);
 
 	kfile_read_fd_t rfd;
+	char buf[32] = {0};
+
 	kfile_open_opts_t kfoopts = {
 		.uuid			= 18446744073709551615ul,
 		.iobuf_size		= 65536,
@@ -57,6 +59,11 @@ int cstd_main(int argc, char* argv[], char* envp[])
 	rfd = kfile_open(&kfoopts);
 	if (rfd < 0)
 		pdie("kfile_open()");
+	kfile_read(rfd, buf, 13);
+
+	printf("resource: '%s'\n" , kfile_get_resource_name(rfd));
+	printf("content: '%s'\n", buf);
+
 	kfile_close(rfd);
 #endif
 

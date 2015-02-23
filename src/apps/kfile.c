@@ -436,31 +436,22 @@ static int _kfile_read_and_check_file_header(kfile_t* kf, kfile_open_opts_t* opt
 
 
 	_kfile_init_algorithms_with_file(kf, opts);
-
+	_kfile_calculate_header_digest(kf);
 
 	if (kfile_read(kf->fd, headerdigest_chk, KFILE_MAX_DIGEST_LENGTH) < 0) {
 		crit("KFILE unable to read from file");
 		return -1;
 	}
-	if (kfile_read(kf->fd, filename, KFILE_MAX_NAME_LENGTH) < 0) {
+	if (kfile_read(kf->fd, kf->resourcename, KFILE_MAX_NAME_LENGTH) < 0) {
 		crit("KFILE unable to read from file");
 		return -1;
 	}
-
-	_kfile_calculate_header_digest(kf);
 
 	if (memcmp(kf->headerdigest, headerdigest_chk,
 	KFILE_MAX_DIGEST_LENGTH)) {
 		crit("KFILE header digest doesn't match");
 		return -1;
 	}
-
-
-#if 0
-	dumphx("hd", headerdigest_chk, KFILE_MAX_DIGEST_LENGTH);
-	dumphx("fn", filename, KFILE_MAX_NAME_LENGTH);
-#endif
-
 	return 0;
 }
 
@@ -501,6 +492,23 @@ kfile_read_fd_t kfile_open(kfile_open_opts_t* opts)
 		die("KFILE corrupt or invalid file header");
 
 	return kf->fd;
+}
+
+const char* kfile_get_resource_name(kfile_read_fd_t fd)
+{
+	kfile_t* kf;
+
+	if (fd < 0)
+		return 0;
+
+	kf = file_get_userdata(fd);
+	if (!kf)
+		return 0;
+
+	if (!strlen(kf->resourcename))
+		return 0;
+
+	return kf->resourcename;
 }
 
 int kfile_close(kfile_fd_t fd)
