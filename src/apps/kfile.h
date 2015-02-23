@@ -39,12 +39,12 @@ typedef struct kfile_header_t {
 	uint8_t		iv[KFILE_MAX_IV_LENGTH];
 } __attribute__((packed)) kfile_header_t;
 /* encrypted:
- * <headerdigest[128(1024bit)]>
- * <filename[256]>
+ * <headerdigest[(hashsize + 7 / 8)]>
+ * <uint8_t filename_length><filename[filename_length]> // no zero byte termination
  * <filedata>
- * <datadigest[128(1024bit)]>
+ * <datadigest[(hashsize + 7 / 8)]>
  * unencrypted:
- * <cipherdigest[128(1024bit)]>
+ * <cipherdigest[(hashsize + 7 / 8)]>
 */
 
 typedef struct kfile_t {

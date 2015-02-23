@@ -66,6 +66,5 @@ int cstd_main(int argc, char* argv[], char* envp[])
 
 	kfile_close(rfd);
 #endif
-
 	return 0;
 }
