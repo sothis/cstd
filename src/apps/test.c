@@ -36,7 +36,7 @@ int cstd_main(int argc, char* argv[], char* envp[])
 		.ciphermode		= BLK_CIPHER_MODE_CTR,
 		.keysize		= 256,
 		.kdf_iterations		= 11027,
-		.iobuf_size		= 65536,
+		.iobuf_size		= 16,
 		.resourcename		= { "some_document.pdf" },
 		.low_entropy_pass	= { "test1234" }
 	};
@@ -52,10 +52,11 @@ int cstd_main(int argc, char* argv[], char* envp[])
 
 	kfile_open_opts_t kfoopts = {
 		.uuid			= 18446744073709551615ul,
-		.iobuf_size		= 65536,
+		.iobuf_size		= 16,
 		.low_entropy_pass	= { "test1234" }
 	};
 
+#if 1
 	rfd = kfile_open(&kfoopts);
 	if (rfd < 0)
 		pdie("kfile_open()");
@@ -65,6 +66,7 @@ int cstd_main(int argc, char* argv[], char* envp[])
 	printf("content: '%s'\n", buf);
 
 	kfile_close(rfd);
+#endif
 #endif
 	return 0;
 }

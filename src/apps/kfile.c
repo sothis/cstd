@@ -384,26 +384,58 @@ int kfile_update(kfile_write_fd_t fd, const void *buf, size_t nbyte)
 ssize_t kfile_read(kfile_read_fd_t fd, void* buf, size_t nbyte)
 {
 	kfile_t* kf;
-	ssize_t nread;
+	ssize_t nread = 0;
+	ssize_t total = 0;
+	ssize_t block_total = 0;
 
 	kf = file_get_userdata(fd);
 	if (!kf)
 		die("KFILE file_get_userdata()");
 
-again:
-	nread = read(kf->fd, kf->iobuf, nbyte);
-	if (nread < 0) {
-		if (errno == EINTR)
-			goto again;
-		else
-			return nread;
-	}
+	size_t blocks = (nbyte / kf->iobuf_size);
+	size_t remaining = (nbyte % kf->iobuf_size);
 
-	k_hash_update(kf->hash_ciphertext, kf->iobuf, nread);
-	k_sc_update(kf->scipher, kf->iobuf, kf->iobuf, nread);
-	k_hash_update(kf->hash_plaintext, kf->iobuf, nread);
-	memmove(buf, kf->iobuf, nread);
-	return nread;
+	for (size_t i = 0; i < blocks; ++i) {
+		printf("%lu\n", i);
+		while (block_total != kf->iobuf_size) {
+			nread = read(kf->fd, kf->iobuf+block_total,
+				kf->iobuf_size-block_total);
+			printf("r %lu\n", nread);
+			if (nread < 0) {
+				if (errno == EINTR)
+					continue;
+				return nread;
+			}
+			if (nread == 0) { /* what to do here? */ }
+			block_total += nread;
+		}
+		total += block_total;
+		block_total = 0;
+		k_sc_update(kf->scipher, kf->iobuf, kf->iobuf, nread);
+		k_hash_update(kf->hash_plaintext, kf->iobuf, nread);
+		memmove(buf+(i*kf->iobuf_size), kf->iobuf, nread);
+	}
+	if (remaining) {
+		printf("reading remaining %lu\n", remaining);
+		while (block_total != remaining) {
+			nread = read(kf->fd, kf->iobuf+block_total,
+				remaining-block_total);
+			if (nread < 0) {
+				if (errno == EINTR)
+					continue;
+				return nread;
+			}
+			if (nread == 0) { /* what to do here? */ }
+			block_total += nread;
+		}
+		k_sc_update(kf->scipher, kf->iobuf, kf->iobuf, remaining);
+		k_hash_update(kf->hash_plaintext, kf->iobuf, remaining);
+		memmove(buf+(blocks*kf->iobuf_size), kf->iobuf, remaining);
+		total += block_total;
+		block_total = 0;
+	}
+	printf("req: %lu, read: %lu\n", nbyte, total);
+	return total;
 }
 
 void kfile_final(kfile_write_fd_t fd)
