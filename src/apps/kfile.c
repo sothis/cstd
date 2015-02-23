@@ -312,6 +312,10 @@ kfile_write_fd_t kfile_create(kfile_create_opts_t* opts)
 
 	_kfile_calculate_header_digest(kf);
 
+	/* header and terminating cipherdigest, kfile_update()'s
+	 * increment filesize implicitly */
+	kf->header.filesize = sizeof(kfile_header_t) + kf->digestbytes;
+
 	if (kfile_update(kf->fd, kf->headerdigest, kf->digestbytes))
 		pdie("KFILE kfile_write()");
 
@@ -329,7 +333,7 @@ int kfile_update(kfile_write_fd_t fd, const void *buf, size_t nbyte)
 
 	kf = file_get_userdata(fd);
 	if (!kf)
-		pdie("KFILE file_get_userdata()");
+		die("KFILE file_get_userdata()");
 
 	size_t blocks = (nbyte / kf->iobuf_size);
 	size_t remaining = (nbyte % kf->iobuf_size);
@@ -370,6 +374,8 @@ int kfile_update(kfile_write_fd_t fd, const void *buf, size_t nbyte)
 	}
 	filebytes += total;
 
+	kf->header.filesize += filebytes;
+
 	return 0;
 }
 
@@ -382,7 +388,7 @@ ssize_t kfile_read(kfile_read_fd_t fd, void* buf, size_t nbyte)
 
 	kf = file_get_userdata(fd);
 	if (!kf)
-		pdie("KFILE file_get_userdata()");
+		die("KFILE file_get_userdata()");
 
 again:
 	nread = read(kf->fd, kf->iobuf, nbyte);
@@ -406,7 +412,7 @@ void kfile_final(kfile_write_fd_t fd)
 
 	kf = file_get_userdata(fd);
 	if (!kf)
-		pdie("file_get_userdata()");
+		die("KFILE file_get_userdata()");
 
 	k_hash_final(kf->hash_plaintext, kf->datadigest);
 
@@ -417,6 +423,15 @@ void kfile_final(kfile_write_fd_t fd)
 
 	if (xwrite(kf->fd, kf->cipherdigest, kf->digestbytes))
 		pdie("KFILE unable to write checksum");
+
+#if 0
+	printf("filebytes: '%lu'\n", kf->header.filesize);
+	if (lseek(kf->fd, 10+8, SEEK_SET) < 0)
+		pdie("KFILE unable to set file pointer");
+	if (xwrite(kf->fd, &kf->header.filesize, sizeof(kf->header.filesize)))
+		pdie("KFILE unable to write filesize");
+#endif
+	kfile_close(fd);
 }
 
 static int _kfile_determine_version(kfile_t* kf)
@@ -439,7 +454,7 @@ static int _kfile_read_and_check_file_header(kfile_t* kf, kfile_open_opts_t* opt
 	unsigned char	headerdigest_chk[KFILE_MAX_DIGEST_LENGTH];
 
 	memset(filename ,0, KFILE_MAX_NAME_LENGTH);
-	memset(headerdigest_chk ,0, KFILE_MAX_DIGEST_LENGTH);
+	memset(headerdigest_chk, 0, KFILE_MAX_DIGEST_LENGTH);
 
 	if (xread(kf->fd, &kf->header, sizeof(kfile_header_t))
 		!= sizeof(kfile_header_t))
@@ -563,7 +578,7 @@ int kfile_close(kfile_fd_t fd)
 
 	kf = file_get_userdata(fd);
 	if (!kf)
-		pdie("file_get_userdata()");
+		die("KFILE file_get_userdata()");
 
 	if (kf->path_ds)
 		closedir(kf->path_ds);

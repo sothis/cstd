@@ -45,7 +45,7 @@ int cstd_main(int argc, char* argv[], char* envp[])
 	kfile_update(wfd, "hello ", 6);
 	kfile_update(wfd, "world", 6);
 	kfile_final(wfd);
-	kfile_close(wfd);
+	//kfile_close(wfd); /* kfile_final now closes implicitly the fd */
 
 	kfile_read_fd_t rfd;
 	char buf[32] = {0};
