@@ -15,6 +15,12 @@ typedef enum kfile_version_t {
 	KFILE_VERSION_MAX
 } kfile_version_t;
 
+/* TODO:
+ * don't use fixed sized, zero padded buffers, since according to
+ * the specified hash fuction and the specified hashsize, a lot
+ * plaintext bytes might be known
+ */
+
 typedef struct kfile_header_t {
 	/* Magic and version are stored including the terminating zero byte
 	 * on disk. */
