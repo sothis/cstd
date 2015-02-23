@@ -16,6 +16,9 @@
 #define KFILE_MAGIC		("KFILE")
 #define KFILE_VERSION_LENGTH	(4)
 
+/* bits to bytes with possible padding zero-bits */
+#define BITSTOBYTES(x)		((x + 7 / 8))
+
 /* index must map exactly to enum kfile_version_t */
 static const char* kfile_version_strings[] = {
 	"0.1",
