@@ -37,13 +37,16 @@ typedef struct kfile_header_t {
  * <filename[256]>
  * <filedata>
  * <datadigest[128(1024bit)]>
+ * unencrypted:
+ * <cipherdigest[128(1024bit)]>
 */
 
 typedef struct kfile_t {
 	int		fd;
 	DIR*		path_ds;
 	int		path_fd;
-	k_hash_t*	hash;
+	k_hash_t*	hash_plaintext;
+	k_hash_t*	hash_ciphertext;
 	k_sc_t*		scipher;
 	k_prng_t*	prng;
 
@@ -56,6 +59,7 @@ typedef struct kfile_t {
 	char		resourcename[KFILE_MAX_NAME_LENGTH];
 	unsigned char	headerdigest[KFILE_MAX_DIGEST_LENGTH];
 	unsigned char	datadigest[KFILE_MAX_DIGEST_LENGTH];
+	unsigned char	cipherdigest[KFILE_MAX_DIGEST_LENGTH];
 	kfile_header_t	header;
 } kfile_t;
 
@@ -81,7 +85,7 @@ typedef struct kfile_create_opts_t {
 	/* mustn't be zero */
 	size_t		iobuf_size;
 	/* padded with zero bytes */
-	char		filename[KFILE_MAX_NAME_LENGTH];
+	char		resourcename[KFILE_MAX_NAME_LENGTH];
 	/* padded with zero bytes */
 	char		low_entropy_pass[KFILE_MAX_NAME_LENGTH];
 } kfile_create_opts_t;

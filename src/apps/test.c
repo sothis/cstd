@@ -37,7 +37,7 @@ int cstd_main(int argc, char* argv[], char* envp[])
 		.keysize		= 256,
 		.kdf_iterations		= 11027,
 		.iobuf_size		= 65536,
-		.filename		= { "some_document.pdf" },
+		.resourcename		= { "some_document.pdf" },
 		.low_entropy_pass	= { "test1234" }
 	};
 

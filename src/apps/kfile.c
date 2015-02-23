@@ -108,9 +108,9 @@ void xuuid_to_path(uint64_t uuid, char** compl, char** fpath, char** fname)
 
 static void _kfile_calculate_header_digest(kfile_t* kf)
 {
-	k_hash_update(kf->hash, &kf->header, sizeof(kfile_header_t));
-	k_hash_final(kf->hash, kf->headerdigest);
-	k_hash_reset(kf->hash);
+	k_hash_update(kf->hash_plaintext, &kf->header, sizeof(kfile_header_t));
+	k_hash_final(kf->hash_plaintext, kf->headerdigest);
+	k_hash_reset(kf->hash_plaintext);
 }
 
 static void _kfile_init_algorithms_with_opts(kfile_t* kf, kfile_create_opts_t* opts)
@@ -125,8 +125,13 @@ static void _kfile_init_algorithms_with_opts(kfile_t* kf, kfile_create_opts_t* o
 	if (opts->hashfunction >= HASHSUM_MAX)
 		die("KFILE hash function not supported");
 
-	kf->hash = k_hash_init(kf->header.hashfunction, kf->header.hashsize);
-	if (!kf->hash)
+	kf->hash_plaintext = k_hash_init(kf->header.hashfunction, kf->header.hashsize);
+	if (!kf->hash_plaintext)
+		die("KFILE unable to initialize hash function");
+
+	kf->hash_ciphertext = k_hash_init(kf->header.hashfunction,
+		kf->header.hashsize);
+	if (!kf->hash_ciphertext)
 		die("KFILE unable to initialize hash function");
 
 	if (!opts->cipher)
@@ -187,10 +192,15 @@ static void _kfile_init_algorithms_with_file(kfile_t* kf, kfile_open_opts_t* opt
 	if (!kf->prng)
 		die("KFILE unable to initialize CSPRNG");
 
-	kf->hash = k_hash_init(kf->header.hashfunction, kf->header.hashsize);
-	if (!kf->hash)
+	kf->hash_plaintext = k_hash_init(kf->header.hashfunction,
+		kf->header.hashsize);
+	if (!kf->hash_plaintext)
 		die("KFILE unable to initialize hash function");
 
+	kf->hash_ciphertext = k_hash_init(kf->header.hashfunction,
+		kf->header.hashsize);
+	if (!kf->hash_ciphertext)
+		die("KFILE unable to initialize hash function");
 
 	if (!kf->header.ciphermode) {
 		/* plain streamcipher */
@@ -234,8 +244,8 @@ kfile_write_fd_t kfile_create(kfile_create_opts_t* opts)
 	if (!strlen(opts->low_entropy_pass))
 		die("KFILE password empty");
 
-	if (!strlen(opts->filename))
-		die("KFILE filename empty");
+	if (!strlen(opts->resourcename))
+		die("KFILE resource name empty");
 
 	if (!opts->kdf_iterations)
 		die("KFILE kdf iterations mustn't be zero");
@@ -269,20 +279,18 @@ kfile_write_fd_t kfile_create(kfile_create_opts_t* opts)
 		pdie("KFILE error creating file '%s' in directory '%s'",
 			kf->filename, kf->path);
 
-	if (xwrite(kf->fd, &kf->header, sizeof(kfile_header_t)))
-		pdie("KFILE xwrite()");
-
-	//dumphx("cfn", opts->filename, KFILE_MAX_NAME_LENGTH);
-	_kfile_calculate_header_digest(kf);
-	//dumphx("chd", kf->headerdigest, KFILE_MAX_DIGEST_LENGTH);
-
 	if (file_set_userdata(kf->fd, kf))
 		die("KFILE file_set_userdata()");
+
+	if (xwrite(kf->fd, &kf->header, sizeof(kfile_header_t)))
+		pdie("KFILE can't write file header");
+
+	_kfile_calculate_header_digest(kf);
 
 	if (kfile_update(kf->fd, kf->headerdigest, KFILE_MAX_DIGEST_LENGTH))
 		pdie("KFILE kfile_write()");
 
-	if (kfile_update(kf->fd, opts->filename, KFILE_MAX_NAME_LENGTH))
+	if (kfile_update(kf->fd, opts->resourcename, KFILE_MAX_NAME_LENGTH))
 		pdie("KFILE kfile_write()");
 
 	return kf->fd;
@@ -303,8 +311,9 @@ int kfile_update(kfile_write_fd_t fd, const void *buf, size_t nbyte)
 
 	for (size_t i = 0; i < blocks; ++i) {
 		memmove(kf->iobuf, buf+(i*kf->iobuf_size), kf->iobuf_size);
-		k_hash_update(kf->hash, kf->iobuf, kf->iobuf_size);
+		k_hash_update(kf->hash_plaintext, kf->iobuf, kf->iobuf_size);
 		k_sc_update(kf->scipher, kf->iobuf, kf->iobuf, kf->iobuf_size);
+		k_hash_update(kf->hash_ciphertext, kf->iobuf, kf->iobuf_size);
 		while (total != kf->iobuf_size) {
 			nwritten = write(kf->fd, kf->iobuf+total,
 				kf->iobuf_size-total);
@@ -320,8 +329,9 @@ int kfile_update(kfile_write_fd_t fd, const void *buf, size_t nbyte)
 	total = 0;
 	if (remaining) {
 		memmove(kf->iobuf, buf+(blocks*kf->iobuf_size), remaining);
-		k_hash_update(kf->hash, kf->iobuf, remaining);
+		k_hash_update(kf->hash_plaintext, kf->iobuf, remaining);
 		k_sc_update(kf->scipher, kf->iobuf, kf->iobuf, remaining);
+		k_hash_update(kf->hash_ciphertext, kf->iobuf, remaining);
 		while (total != remaining) {
 			nwritten = write(kf->fd, kf->iobuf+total,
 				remaining-total);
@@ -355,8 +365,11 @@ again:
 		else
 			return nread;
 	}
+
 //	printf("decrypting %lu bytes\n", nread);
+	k_hash_update(kf->hash_ciphertext, kf->iobuf, nread);
 	k_sc_update(kf->scipher, kf->iobuf, kf->iobuf, nread);
+	k_hash_update(kf->hash_plaintext, kf->iobuf, nread);
 	memmove(buf, kf->iobuf, nread);
 	return nread;
 }
@@ -369,10 +382,15 @@ void kfile_final(kfile_write_fd_t fd)
 	if (!kf)
 		pdie("file_get_userdata()");
 
-	k_hash_final(kf->hash, kf->datadigest);
+	k_hash_final(kf->hash_plaintext, kf->datadigest);
 
 	if (kfile_update(kf->fd, kf->datadigest, KFILE_MAX_DIGEST_LENGTH))
 		pdie("KFILE kfile_write()");
+
+	k_hash_final(kf->hash_ciphertext, kf->cipherdigest);
+
+	if (xwrite(kf->fd, kf->cipherdigest, KFILE_MAX_DIGEST_LENGTH))
+		pdie("KFILE unable to write checksum");
 }
 
 static int _kfile_determine_version(kfile_t* kf)
@@ -524,8 +542,10 @@ int kfile_close(kfile_fd_t fd)
 
 	if (kf->path_ds)
 		closedir(kf->path_ds);
-	if (kf->hash)
-		k_hash_finish(kf->hash);
+	if (kf->hash_plaintext)
+		k_hash_finish(kf->hash_plaintext);
+	if (kf->hash_ciphertext)
+		k_hash_finish(kf->hash_ciphertext);
 	if (kf->prng)
 		k_prng_finish(kf->prng);
 	if (kf->scipher)
