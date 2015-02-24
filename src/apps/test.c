@@ -42,10 +42,16 @@ int cstd_main(int argc, char* argv[], char* envp[])
 	};
 
 	wfd = kfile_create(&kfcopts);
+	if (wfd < 0)
+		pdie("kfile_create()");
+
 	kfile_update(wfd, "hello ", 6);
+	/* writing terinating zero for test simplicity here */
 	kfile_update(wfd, "world", 6);
-	kfile_final(wfd);
-	//kfile_close(wfd); /* kfile_final now closes implicitly the fd */
+
+	kfile_write_digests_and_close(wfd);
+
+
 
 	kfile_read_fd_t rfd;
 	char buf[32] = {0};
@@ -56,17 +62,16 @@ int cstd_main(int argc, char* argv[], char* envp[])
 		.low_entropy_pass	= { "test1234" }
 	};
 
-#if 1
 	rfd = kfile_open(&kfoopts);
 	if (rfd < 0)
 		pdie("kfile_open()");
+
 	kfile_read(rfd, buf, 13);
 
 	printf("resource: '%s'\n" , kfile_get_resource_name(rfd));
 	printf("content: '%s'\n", buf);
 
 	kfile_close(rfd);
-#endif
 #endif
 	return 0;
 }

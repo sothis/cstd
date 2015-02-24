@@ -451,7 +451,7 @@ ssize_t kfile_read(kfile_read_fd_t fd, void* buf, size_t nbyte)
 	return total;
 }
 
-void kfile_final(kfile_write_fd_t fd)
+void kfile_write_digests_and_close(kfile_write_fd_t fd)
 {
 	kfile_t* kf;
 
@@ -535,9 +535,11 @@ static int _kfile_read_and_check_file_header(kfile_t* kf, kfile_open_opts_t* opt
 		return -1;
 	}
 
+	if (opts->uuid != kf->header.uuid)
+		{ crit("KFILE UUID doesn't match requested one"); return -1; }
+
 	if (!kf->header.kdf_iterations)
 		{ crit("KFILE kdf iterations mustn't be zero"); return -1; }
-
 
 	_kfile_init_algorithms_with_file(kf, opts);
 	_kfile_calculate_header_digest(kf);
