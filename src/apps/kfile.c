@@ -262,6 +262,7 @@ static void _kfile_init_algorithms_with_file(kfile_t* kf, kfile_open_opts_t* opt
 kfile_write_fd_t kfile_create(kfile_create_opts_t* opts)
 {
 	kfile_t* kf;
+	size_t len;
 
 	if (opts->version >= KFILE_VERSION_MAX)
 		die("KFILE version out of bounds");
@@ -269,8 +270,12 @@ kfile_write_fd_t kfile_create(kfile_create_opts_t* opts)
 	if (!strlen(opts->low_entropy_pass))
 		die("KFILE password empty");
 
-	if (!strlen(opts->resourcename))
+	len = strlen(opts->resourcename);
+
+	if (!len)
 		die("KFILE resource name empty");
+	if (len > 255)
+		die("KFILE resource name too long");
 
 	if (!opts->kdf_iterations)
 		die("KFILE kdf iterations mustn't be zero");
@@ -316,10 +321,15 @@ kfile_write_fd_t kfile_create(kfile_create_opts_t* opts)
 	 * increment filesize implicitly */
 	kf->header.filesize = sizeof(kfile_header_t) + kf->digestbytes;
 
+	kf->resourcename_len = (unsigned char)(len & 0xff);
+
 	if (kfile_update(kf->fd, kf->headerdigest, kf->digestbytes) < 0)
 		pdie("KFILE kfile_update(kf->headerdigest)");
 
-	if (kfile_update(kf->fd, opts->resourcename, KFILE_MAX_NAME_LENGTH) < 0)
+	if (kfile_update(kf->fd, &kf->resourcename_len, 1) < 0)
+		pdie("KFILE kfile_update(kf->resourcename_len)");
+
+	if (kfile_update(kf->fd, opts->resourcename, kf->resourcename_len) < 0)
 		pdie("KFILE kfile_update(opts->resourcename)");
 
 	return kf->fd;
@@ -533,11 +543,22 @@ static int _kfile_read_and_check_file_header(kfile_t* kf, kfile_open_opts_t* opt
 	_kfile_calculate_header_digest(kf);
 
 	if (kfile_read(kf->fd, headerdigest_chk, kf->digestbytes) < 0) {
-		crit("KFILE unable to read from file");
+		crit("KFILE unable to read header digest from file");
 		return -1;
 	}
-	if (kfile_read(kf->fd, kf->resourcename, KFILE_MAX_NAME_LENGTH) < 0) {
-		crit("KFILE unable to read from file");
+
+	if (kfile_read(kf->fd, &kf->resourcename_len, 1) < 0) {
+		crit("KFILE unable to read resource name size from file");
+		return -1;
+	}
+
+	if (!kf->resourcename_len) {
+		crit("KFILE resource name size mustn't be zero.");
+		return -1;
+	}
+
+	if (kfile_read(kf->fd, kf->resourcename, kf->resourcename_len) < 0) {
+		crit("KFILE unable to read resource name from file");
 		return -1;
 	}
 

@@ -35,7 +35,7 @@ int cstd_main(int argc, char* argv[], char* envp[])
 		.cipher			= BLK_CIPHER_AES,
 		.ciphermode		= BLK_CIPHER_MODE_CTR,
 		.keysize		= 256,
-		.kdf_iterations		= 11027,
+		.kdf_iterations		= 2003,
 		.iobuf_size		= 65536,
 		.resourcename		= { "some_document.pdf" },
 		.low_entropy_pass	= { "test1234" }

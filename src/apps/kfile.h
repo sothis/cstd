@@ -15,12 +15,6 @@ typedef enum kfile_version_t {
 	KFILE_VERSION_MAX
 } kfile_version_t;
 
-/* TODO:
- * don't use fixed sized, zero padded buffers, since according to
- * the specified hash fuction and the specified hashsize, a lot
- * plaintext bytes might be known
- */
-
 typedef struct kfile_header_t {
 	/* Magic and version are stored including the terminating zero byte
 	 * on disk. */
@@ -28,19 +22,22 @@ typedef struct kfile_header_t {
 	char		version[4];
 	uint64_t	uuid;
 	uint64_t	filesize;
-	uint64_t	kdf_iterations;
-	uint32_t	hashfunction;
-	uint32_t	hashsize;
-	uint32_t	cipher;
-	uint32_t	ciphermode;
-	uint32_t	keysize;
+
+	uint16_t	kdf_iterations;
+	uint16_t	hashfunction;
+
+	uint16_t	hashsize;
+	uint16_t	cipher;
+
+	uint16_t	ciphermode;
+	uint16_t	keysize;
 
 	uint8_t		kdf_salt[KFILE_MAX_IV_LENGTH];
 	uint8_t		iv[KFILE_MAX_IV_LENGTH];
 } __attribute__((packed)) kfile_header_t;
 /* encrypted:
  * <headerdigest[(hashsize + 7 / 8)]>
- * <uint8_t filename_length><filename[filename_length]> // no zero byte termination
+ * <uint8_t resourcename_len><resourcename[resourcename_len]> // no zero byte termination
  * <filedata>
  * <datadigest[(hashsize + 7 / 8)]>
  * unencrypted:
@@ -64,6 +61,7 @@ typedef struct kfile_t {
 	unsigned char*	iobuf;
 	unsigned char*	key;
 	char		resourcename[KFILE_MAX_NAME_LENGTH];
+	unsigned char	resourcename_len;
 	unsigned char*	headerdigest;
 	unsigned char*	datadigest;
 	unsigned char*	cipherdigest;
@@ -74,21 +72,21 @@ typedef struct kfile_create_opts_t {
 	uint64_t	uuid;
 	mode_t		filemode;
 	kfile_version_t	version;
-	uint32_t	hashfunction;
+	uint16_t	hashfunction;
 	/* Hashsize in bits.
 	 * Might be 0 in order to use the default state size of the
 	 * specified hash function. */
-	uint32_t	hashsize;
+	uint16_t	hashsize;
 	/* mustn't be zero, kfiles are always encrypted */
-	uint32_t	cipher;
+	uint16_t	cipher;
 	/* If the used cipher is a plain streamcipher, set ciphermode to 0.
 	 * Otherwise only blockcipher modes are supported, that turn the
 	 * specified blockcipher into a streamcipher (e.g. OFB, CTR or GCM) */
-	uint32_t	ciphermode;
+	uint16_t	ciphermode;
 	/* keysize in bits */
-	uint32_t	keysize;
+	uint16_t	keysize;
 	/* mustn't be zero */
-	uint64_t	kdf_iterations;
+	uint16_t	kdf_iterations;
 	/* mustn't be zero */
 	size_t		iobuf_size;
 	/* padded with zero bytes */
