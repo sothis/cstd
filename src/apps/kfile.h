@@ -53,6 +53,7 @@ typedef struct kfile_t {
 	k_sc_t*		scipher;
 	k_prng_t*	prng;
 
+	size_t		filesize;
 	size_t		noncebytes;
 	size_t		digestbytes;
 	char*		path;
@@ -98,6 +99,9 @@ typedef struct kfile_create_opts_t {
 typedef struct kfile_open_opts_t {
 	uint64_t	uuid;
 	size_t		iobuf_size;
+	/* check cipher digest with kfile_open().
+	 * might take a long time with very large encrypted resources. */
+	uint32_t	check_cipherdigest;
 	char		low_entropy_pass[KFILE_MAX_NAME_LENGTH];
 } kfile_open_opts_t;
 

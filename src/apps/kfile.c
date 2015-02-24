@@ -447,6 +447,7 @@ ssize_t kfile_read(kfile_read_fd_t fd, void* buf, size_t nbyte)
 		nread = _fill_io_buf(kf, remaining);
 		if (nread <= 0)
 			return -1;
+
 		_decrypt_io_buf(kf, remaining);
 		memmove(buf+(blocks*kf->iobuf_size), kf->iobuf, remaining);
 		total += nread;
@@ -494,6 +495,20 @@ static int _kfile_determine_version(kfile_t* kf)
 	return -1;
 }
 
+static int _check_cipherdigest(kfile_t* kf)
+{
+#if 0
+	ssize_t nread;
+	unsigned char cipherdigest_chk[KFILE_MAX_DIGEST_LENGTH];
+
+	while ((nread = read(kf->fd, kf->iobuf, kf->iobuf_size)) > 0) {
+
+	}
+	if (nread < 0)
+		return -1;
+#endif
+	return 0;
+}
 
 static int _kfile_read_and_check_file_header(kfile_t* kf, kfile_open_opts_t* opts)
 {
@@ -503,6 +518,11 @@ static int _kfile_read_and_check_file_header(kfile_t* kf, kfile_open_opts_t* opt
 
 	memset(filename ,0, KFILE_MAX_NAME_LENGTH);
 	memset(headerdigest_chk, 0, KFILE_MAX_DIGEST_LENGTH);
+
+	if (kf->filesize < sizeof(kfile_header_t)) {
+		crit("KFILE filesize lower than expected");
+		return -1;
+	}
 
 	if (xread(kf->fd, &kf->header, sizeof(kfile_header_t))
 		!= sizeof(kfile_header_t))
@@ -545,7 +565,21 @@ static int _kfile_read_and_check_file_header(kfile_t* kf, kfile_open_opts_t* opt
 		{ crit("KFILE kdf iterations mustn't be zero"); return -1; }
 
 	_kfile_init_algorithms_with_file(kf, opts);
+
+	if (kf->filesize < (sizeof(kfile_header_t) + (3*kf->digestbytes) + 1)) {
+		crit("KFILE filesize lower than expected");
+		return -1;
+	}
+
 	_kfile_calculate_header_digest(kf);
+
+	if (opts->check_cipherdigest) {
+		if (_check_cipherdigest(kf)) {
+			crit("KFILE cipher digest doesn't match. source file "
+			"was modified.");
+			return -1;
+		}
+	}
 
 	if (kfile_read(kf->fd, headerdigest_chk, kf->digestbytes) < 0) {
 		crit("KFILE unable to read header digest from file");
@@ -576,6 +610,7 @@ static int _kfile_read_and_check_file_header(kfile_t* kf, kfile_open_opts_t* opt
 
 kfile_read_fd_t kfile_open(kfile_open_opts_t* opts)
 {
+	struct stat st;
 	kfile_t* kf;
 
 	if (!opts->iobuf_size)
@@ -601,6 +636,14 @@ kfile_read_fd_t kfile_open(kfile_open_opts_t* opts)
 	kf->fd = openat(kf->path_fd, kf->filename, O_RDONLY | O_NOATIME);
 	if (kf->fd < 0)
 		pdie("KFILE openat()");
+
+	if (fstat(kf->fd, &st))
+		pdie("KFILE fstat()");
+
+	if (!S_ISREG(st.st_mode))
+		die("KFILE not a regular file");
+
+	kf->filesize = st.st_size;
 
 	file_register_fd(kf->fd, kf->path, kf->filename);
 
