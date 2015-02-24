@@ -316,20 +316,44 @@ kfile_write_fd_t kfile_create(kfile_create_opts_t* opts)
 	 * increment filesize implicitly */
 	kf->header.filesize = sizeof(kfile_header_t) + kf->digestbytes;
 
-	if (kfile_update(kf->fd, kf->headerdigest, kf->digestbytes))
-		pdie("KFILE kfile_write()");
+	if (kfile_update(kf->fd, kf->headerdigest, kf->digestbytes) < 0)
+		pdie("KFILE kfile_update(kf->headerdigest)");
 
-	if (kfile_update(kf->fd, opts->resourcename, KFILE_MAX_NAME_LENGTH))
-		pdie("KFILE kfile_write()");
+	if (kfile_update(kf->fd, opts->resourcename, KFILE_MAX_NAME_LENGTH) < 0)
+		pdie("KFILE kfile_update(opts->resourcename)");
 
 	return kf->fd;
+}
+
+void _encrypt_io_buf(kfile_t* kf, size_t nbyte)
+{
+	k_hash_update(kf->hash_plaintext, kf->iobuf, nbyte);
+	k_sc_update(kf->scipher, kf->iobuf, kf->iobuf, nbyte);
+	k_hash_update(kf->hash_ciphertext, kf->iobuf, nbyte);
+}
+
+ssize_t _store_io_buf(kfile_t* kf, size_t nbyte)
+{
+	ssize_t nwritten = 0;
+	ssize_t total = 0;
+
+	while (total != nbyte) {
+		nwritten = write(kf->fd, kf->iobuf + total, nbyte - total);
+		if (nwritten < 0) {
+			if (errno == EINTR)
+				continue;
+			else return nwritten;
+		}
+		total += nwritten;
+	}
+	return total;
 }
 
 int kfile_update(kfile_write_fd_t fd, const void *buf, size_t nbyte)
 {
 	kfile_t* kf;
-	size_t filebytes = 0;
-	ssize_t nwritten, total = 0;
+	ssize_t nwritten = 0;
+	ssize_t total = 0;
 
 	kf = file_get_userdata(fd);
 	if (!kf)
@@ -339,54 +363,57 @@ int kfile_update(kfile_write_fd_t fd, const void *buf, size_t nbyte)
 	size_t remaining = (nbyte % kf->iobuf_size);
 
 	for (size_t i = 0; i < blocks; ++i) {
-		memmove(kf->iobuf, buf+(i*kf->iobuf_size), kf->iobuf_size);
-		k_hash_update(kf->hash_plaintext, kf->iobuf, kf->iobuf_size);
-		k_sc_update(kf->scipher, kf->iobuf, kf->iobuf, kf->iobuf_size);
-		k_hash_update(kf->hash_ciphertext, kf->iobuf, kf->iobuf_size);
-		while (total != kf->iobuf_size) {
-			nwritten = write(kf->fd, kf->iobuf+total,
-				kf->iobuf_size-total);
-			if (nwritten < 0) {
-				if (errno == EINTR)
-					continue;
-				return -1;
-			}
-			total += nwritten;
-		}
+		memmove(kf->iobuf, buf + (i * kf->iobuf_size), kf->iobuf_size);
+		_encrypt_io_buf(kf, kf->iobuf_size);
+		nwritten = _store_io_buf(kf, kf->iobuf_size);
+		if (nwritten < 0)
+			return -1;
+		total += nwritten;
 	}
-	filebytes += total;
-	total = 0;
 	if (remaining) {
 		memmove(kf->iobuf, buf+(blocks*kf->iobuf_size), remaining);
-		k_hash_update(kf->hash_plaintext, kf->iobuf, remaining);
-		k_sc_update(kf->scipher, kf->iobuf, kf->iobuf, remaining);
-		k_hash_update(kf->hash_ciphertext, kf->iobuf, remaining);
-		while (total != remaining) {
-			nwritten = write(kf->fd, kf->iobuf+total,
-				remaining-total);
-			if (nwritten < 0) {
-				if (errno == EINTR)
-					continue;
-				return -1;
-			}
-			total += nwritten;
-		}
+		_encrypt_io_buf(kf, remaining);
+		nwritten = _store_io_buf(kf, remaining);
+		if (nwritten < 0)
+			return -1;
+		total += nwritten;
 	}
-	filebytes += total;
 
-	kf->header.filesize += filebytes;
-
-	return 0;
+	return total;
 }
 
-/* TODO: read nbyte in chunks, due to limited kf->iobuf size */
+ssize_t _fill_io_buf(kfile_t* kf, size_t nbyte)
+{
+	ssize_t nread = 0;
+	ssize_t total = 0;
+
+	while (total != nbyte) {
+		nread = read(kf->fd, kf->iobuf + total, nbyte - total);
+		if (nread < 0) {
+			if (errno == EINTR)
+				continue;
+			else return nread;
+		}
+		if (nread == 0) {
+			/* shall not happen */
+			return -1;
+		}
+		total += nread;
+	}
+	return total;
+}
+
+void _decrypt_io_buf(kfile_t* kf, size_t nbyte)
+{
+	k_sc_update(kf->scipher, kf->iobuf, kf->iobuf, nbyte);
+	k_hash_update(kf->hash_plaintext, kf->iobuf, nbyte);
+}
 
 ssize_t kfile_read(kfile_read_fd_t fd, void* buf, size_t nbyte)
 {
 	kfile_t* kf;
 	ssize_t nread = 0;
 	ssize_t total = 0;
-	ssize_t block_total = 0;
 
 	kf = file_get_userdata(fd);
 	if (!kf)
@@ -396,45 +423,21 @@ ssize_t kfile_read(kfile_read_fd_t fd, void* buf, size_t nbyte)
 	size_t remaining = (nbyte % kf->iobuf_size);
 
 	for (size_t i = 0; i < blocks; ++i) {
-		printf("%lu\n", i);
-		while (block_total != kf->iobuf_size) {
-			nread = read(kf->fd, kf->iobuf+block_total,
-				kf->iobuf_size-block_total);
-			printf("r %lu\n", nread);
-			if (nread < 0) {
-				if (errno == EINTR)
-					continue;
-				return nread;
-			}
-			if (nread == 0) { /* what to do here? */ }
-			block_total += nread;
-		}
-		total += block_total;
-		block_total = 0;
-		k_sc_update(kf->scipher, kf->iobuf, kf->iobuf, nread);
-		k_hash_update(kf->hash_plaintext, kf->iobuf, nread);
-		memmove(buf+(i*kf->iobuf_size), kf->iobuf, nread);
+		nread = _fill_io_buf(kf, kf->iobuf_size);
+		if (nread <= 0)
+			return -1;
+		_decrypt_io_buf(kf, kf->iobuf_size);
+		memmove(buf+(i*kf->iobuf_size), kf->iobuf, kf->iobuf_size);
+		total += nread;
 	}
 	if (remaining) {
-		printf("reading remaining %lu\n", remaining);
-		while (block_total != remaining) {
-			nread = read(kf->fd, kf->iobuf+block_total,
-				remaining-block_total);
-			if (nread < 0) {
-				if (errno == EINTR)
-					continue;
-				return nread;
-			}
-			if (nread == 0) { /* what to do here? */ }
-			block_total += nread;
-		}
-		k_sc_update(kf->scipher, kf->iobuf, kf->iobuf, remaining);
-		k_hash_update(kf->hash_plaintext, kf->iobuf, remaining);
+		nread = _fill_io_buf(kf, remaining);
+		if (nread <= 0)
+			return -1;
+		_decrypt_io_buf(kf, remaining);
 		memmove(buf+(blocks*kf->iobuf_size), kf->iobuf, remaining);
-		total += block_total;
-		block_total = 0;
+		total += nread;
 	}
-	printf("req: %lu, read: %lu\n", nbyte, total);
 	return total;
 }
 
@@ -448,8 +451,8 @@ void kfile_final(kfile_write_fd_t fd)
 
 	k_hash_final(kf->hash_plaintext, kf->datadigest);
 
-	if (kfile_update(kf->fd, kf->datadigest, kf->digestbytes))
-		pdie("KFILE kfile_write()");
+	if (kfile_update(kf->fd, kf->datadigest, kf->digestbytes) < 0)
+		pdie("KFILE kfile_update()");
 
 	k_hash_final(kf->hash_ciphertext, kf->cipherdigest);
 
