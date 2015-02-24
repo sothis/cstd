@@ -114,6 +114,9 @@ static void _kfile_calculate_header_digest(kfile_t* kf)
 	k_hash_update(kf->hash_plaintext, &kf->header, sizeof(kfile_header_t));
 	k_hash_final(kf->hash_plaintext, kf->headerdigest);
 	k_hash_reset(kf->hash_plaintext);
+	/* including the complete header (IV is most important here)
+	 * in the cipherdigest, which is appended at the end of the file */
+	k_hash_update(kf->hash_ciphertext, &kf->header, sizeof(kfile_header_t));
 }
 
 static void _kfile_init_algorithms_with_opts(kfile_t* kf, kfile_create_opts_t* opts)
