@@ -13,7 +13,7 @@
 
 #define	HOSTNAME	"localhost"
 #define PORT		"4242"
-#define TESTFILE	"/home/sothis/rimg.bin"
+#define TESTFILE	"/home/sothis/Downloads/08413888.pdf"
 
 const char* address_families[] = {
 	"AF_UNSPEC",
