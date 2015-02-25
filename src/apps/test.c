@@ -66,12 +66,12 @@ int cstd_main(int argc, char* argv[], char* envp[])
 	rfd = kfile_open(&kfoopts);
 	if (rfd < 0)
 		pdie("kfile_open()");
-	kfile_read(rfd, rdata, 2048);
+	//kfile_read(rfd, rdata, 2048);
 	printf("resource: '%s'\n" , kfile_get_resource_name(rfd));
-	printf("content: '%s'\n", rdata);
+	//printf("content: '%s'\n", rdata);
 	kfile_close(rfd);
 #endif
-
+	printf("s: '%lu'\n", sizeof(kfile_header_t));
 #endif
 	return 0;
 }

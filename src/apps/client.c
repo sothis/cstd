@@ -142,7 +142,7 @@ int cstd_main(int argc, char* argv[], char* envp[])
 	sdtl_write_start_struct(&sdtl_wfd, "operation");
 		sdtl_write_enum(&sdtl_wfd, "do", "add-resource");
 		sdtl_write_start_struct(&sdtl_wfd, "parameter");
-			sdtl_write_number(&sdtl_wfd, "uuid", "84654232316898463");
+			sdtl_write_number(&sdtl_wfd, "uuid", "18446744073709551615");
 			sdtl_write_utf8string(&sdtl_wfd, "resource-name", "document.pdf");
 			sdtl_write_enum(&sdtl_wfd, "stream-name", "resource-stream");
 		sdtl_write_end_struct(&sdtl_wfd);

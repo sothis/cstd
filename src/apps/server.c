@@ -10,13 +10,15 @@
 #include "sio.h"
 
 #include "sdtl.h"
+#include "kfile.h"
 #include <libk/libk.h>
 
 #include <sys/epoll.h>
 #include <sys/statvfs.h>
 
 #define	IFCE		"127.0.0.1"
-#define PORT		"4242"
+#define PORT		4242
+#define PORT_STR	"4242"
 #define REUSEADDR	1
 #define BACKLOG		10
 #define TESTFILE	"/home/sothis/rimg.bin.copy"
@@ -105,7 +107,7 @@ int fn(void)
 	filter.ai_protocol = 0; /* any */
 	filter.ai_flags = AI_PASSIVE; /* suitable for accepting connections */
 
-	if ((r = getaddrinfo(0, PORT, &filter, &servinfo)) != 0) {
+	if ((r = getaddrinfo(0, PORT_STR, &filter, &servinfo)) != 0) {
 		fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(r));
 		exit(1);
 	}
@@ -148,7 +150,7 @@ int fn(void)
 	return 0;
 }
 
-#if 0
+#if 1
 static void log_client_accepted(int sock)
 {
 	struct sockaddr_in a;
@@ -160,7 +162,13 @@ static void log_client_accepted(int sock)
 }
 
 static int sbegin = 0;
-static int test_fd = 0;
+uint64_t uuid;
+char resname[256];
+int uuid_follows = 0;
+int resname_follows = 0;
+
+kfile_write_fd_t wfd = -1;
+kfile_create_opts_t kfcopts = {0};
 
 int _on_sdtl_event(void* userdata, sdtl_event_t e, sdtl_data_t* data)
 {
@@ -170,11 +178,49 @@ int _on_sdtl_event(void* userdata, sdtl_event_t e, sdtl_data_t* data)
 			break;
 		case ev_assignment_start:
 			eprintf(LOG_INFO, "assignment start: '%s'\n", (char*)data->data);
+			if (!strcmp((char*)data->data, "uuid")) {
+				uuid_follows = 1;
+			}
+			if (!strcmp((char*)data->data, "resource-name")) {
+				resname_follows = 1;
+			}
+			if (!strcmp((char*)data->data, "resource-stream")) {
+				kfcopts.uuid = uuid;
+				kfcopts.filemode = 0400;
+				kfcopts.version = KFILE_VERSION_0_1;
+				kfcopts.hashfunction = HASHSUM_SKEIN_512;
+				kfcopts.hashsize = 512;
+				kfcopts.cipher = BLK_CIPHER_AES;
+				kfcopts.ciphermode = BLK_CIPHER_MODE_CTR;
+				kfcopts.keysize = 256;
+				kfcopts.kdf_iterations = 2003;
+				kfcopts.iobuf_size = 65536;
+				strcpy(kfcopts.resourcename, resname);
+				strcpy(kfcopts.low_entropy_pass, "test1234");
+
+				wfd = kfile_create(&kfcopts);
+				if (wfd < 0)
+					return -1;
+
+			}
 			break;
 		case ev_data:
 			eprintf(LOG_INFO, "\tvalue data (%u bytes)\n", data->length);
+			if (uuid_follows) {
+				uuid_follows = 0;
+				uuid = strtoull(data->data, 0, 10);
+				if ((errno == EINVAL) || (errno == ERANGE))
+					return -1;
+				printf("uuid: %lu\n", uuid);
+			}
+			if (resname_follows) {
+				resname_follows = 0;
+				if (!data->length || (data->length > 256))
+					return -1;
+				strcpy(resname, data->data);
+			}
 			if (sbegin) {
-				xwrite(test_fd, data->data, data->length);
+				kfile_update(wfd, data->data, data->length);
 			}
 			break;
 		case ev_struct_start:
@@ -191,12 +237,12 @@ int _on_sdtl_event(void* userdata, sdtl_event_t e, sdtl_data_t* data)
 			break;
 		case ev_octet_stream_start:
 			sbegin = 1;
-			test_fd = open(TESTFILE, O_RDWR | O_CREAT, 0644);
 			eprintf(LOG_INFO, "stream start\n");
 			break;
 		case ev_octet_stream_end:
 			sbegin = 0;
-			close(test_fd);
+			if (wfd > 0)
+				kfile_write_digests_and_close(wfd);
 			eprintf(LOG_INFO, "stream end\n");
 			break;
 		default:
@@ -255,11 +301,11 @@ struct statvfs {
 
 int cstd_main(int argc, char* argv[], char* envp[])
 {
-#if 0
+#if 1
 	int res = 0;
 	int srv_sock = 0;
 #endif
-#if 0
+#if 1
 	int new_client_sock = 0;
 	fd_set active_set;
 	fd_set read_set;
@@ -268,7 +314,7 @@ int cstd_main(int argc, char* argv[], char* envp[])
 		pdie("some of the libk unit tests failed.");
 
 	// fn();
-
+#if 0
 	struct statvfs svfs;
 
 	memset(&svfs, 0, sizeof(struct statvfs));
@@ -281,16 +327,16 @@ int cstd_main(int argc, char* argv[], char* envp[])
 	printf("free root:\t%" PRIu64 "\n", svfs.f_ffree);
 	printf("free user:\t%" PRIu64 "\n",svfs.f_favail);
 	printf("max name:\t%" PRIu64 "\n",svfs.f_namemax);
+#endif
 
 
-
-#if 0
+#if 1
 	srv_sock = sio_listen4(IFCE, PORT, REUSEADDR, BACKLOG);
 	if (srv_sock < 0)
 		pdie("Couldn't create listening IPv4 socket.");
 #endif
 
-#if 0
+#if 1
 	FD_ZERO(&active_set);
 	if (srv_sock >= FD_SETSIZE)
 		pdie("socket larger or equal than FD_SETSIZE (%d).", srv_sock);
