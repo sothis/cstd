@@ -25,6 +25,9 @@ int cstd_main(int argc, char* argv[], char* envp[])
 	file_sync_and_close_all();
 #endif
 #if 1
+
+#if 0
+	unsigned char sdata[2048];
 	kfile_write_fd_t wfd;
 	kfile_create_opts_t kfcopts = {
 		.uuid			= 18446744073709551615ul,
@@ -41,9 +44,6 @@ int cstd_main(int argc, char* argv[], char* envp[])
 		.low_entropy_pass	= { "test1234" }
 	};
 
-	unsigned char sdata[2048];
-	unsigned char rdata[2048];
-
 	memset(sdata, 'z', 2048);
 	sdata[2047] = 0;
 	wfd = kfile_create(&kfcopts);
@@ -51,8 +51,10 @@ int cstd_main(int argc, char* argv[], char* envp[])
 		pdie("kfile_create()");
 	kfile_update(wfd, sdata, sizeof(sdata));
 	kfile_write_digests_and_close(wfd);
+#endif
 
-
+#if 1
+	unsigned char rdata[2048];
 	kfile_read_fd_t rfd;
 	kfile_open_opts_t kfoopts = {
 		.uuid			= 18446744073709551615ul,
@@ -68,6 +70,8 @@ int cstd_main(int argc, char* argv[], char* envp[])
 	printf("resource: '%s'\n" , kfile_get_resource_name(rfd));
 	printf("content: '%s'\n", rdata);
 	kfile_close(rfd);
+#endif
+
 #endif
 	return 0;
 }
