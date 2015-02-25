@@ -497,16 +497,40 @@ static int _kfile_determine_version(kfile_t* kf)
 
 static int _check_cipherdigest(kfile_t* kf)
 {
-#if 0
 	ssize_t nread;
 	unsigned char cipherdigest_chk[KFILE_MAX_DIGEST_LENGTH];
+	size_t ciphertextsize = kf->filesize - sizeof(kfile_header_t) -
+		kf->digestbytes;
+	size_t blocks = ciphertextsize / kf->iobuf_size;
+	size_t remaining = ciphertextsize % kf->iobuf_size;
 
-	while ((nread = read(kf->fd, kf->iobuf, kf->iobuf_size)) > 0) {
-
+	for (size_t i = 0; i < blocks; ++i) {
+		nread = _fill_io_buf(kf, kf->iobuf_size);
+		if (nread <= 0)
+			return -1;
+		k_hash_update(kf->hash_ciphertext, kf->iobuf, nread);
 	}
-	if (nread < 0)
+	if (remaining) {
+		nread = _fill_io_buf(kf, remaining);
+		if (nread <= 0)
+			return -1;
+		k_hash_update(kf->hash_ciphertext, kf->iobuf, nread);
+	}
+
+	k_hash_final(kf->hash_ciphertext, cipherdigest_chk);
+	if (xread(kf->fd, kf->cipherdigest, kf->digestbytes) < 0)
 		return -1;
-#endif
+
+	/* put read pointer back to cipher start */
+	if (lseek(kf->fd, sizeof(kfile_header_t), SEEK_SET) < 0) {
+		crit("KFILE lseek failed");
+		return -1;
+	}
+	if (memcmp(kf->cipherdigest, cipherdigest_chk, kf->digestbytes)) {
+		crit("KFILE cipher digest doesn't match");
+		return -1;
+	}
+
 	return 0;
 }
 

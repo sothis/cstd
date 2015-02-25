@@ -41,36 +41,32 @@ int cstd_main(int argc, char* argv[], char* envp[])
 		.low_entropy_pass	= { "test1234" }
 	};
 
+	unsigned char sdata[2048];
+	unsigned char rdata[2048];
+
+	memset(sdata, 'z', 2048);
+	sdata[2047] = 0;
 	wfd = kfile_create(&kfcopts);
 	if (wfd < 0)
 		pdie("kfile_create()");
-
-	kfile_update(wfd, "hello ", 6);
-	/* writing terinating zero for test simplicity here */
-	kfile_update(wfd, "world", 6);
-
+	kfile_update(wfd, sdata, sizeof(sdata));
 	kfile_write_digests_and_close(wfd);
 
 
-
 	kfile_read_fd_t rfd;
-	char buf[32] = {0};
-
 	kfile_open_opts_t kfoopts = {
 		.uuid			= 18446744073709551615ul,
 		.iobuf_size		= 65536,
+		.check_cipherdigest	= 1,
 		.low_entropy_pass	= { "test1234" }
 	};
 
 	rfd = kfile_open(&kfoopts);
 	if (rfd < 0)
 		pdie("kfile_open()");
-
-	kfile_read(rfd, buf, 13);
-
+	kfile_read(rfd, rdata, 2048);
 	printf("resource: '%s'\n" , kfile_get_resource_name(rfd));
-	printf("content: '%s'\n", buf);
-
+	printf("content: '%s'\n", rdata);
 	kfile_close(rfd);
 #endif
 	return 0;
