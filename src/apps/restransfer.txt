@@ -1,0 +1,46 @@
+Request:
+
+	.application = resource-transfer;
+	.protocol-version = "1.0";
+	.request = {
+		.op = add-resource;
+		.parameter = {
+			.uuid = 18446744073709551615;
+			.resource-name = "document.pdf";
+			.stream-name = resource-stream;
+		};
+	};
+	.resource-stream = ^^^^^^^^^^^^^^^^^^;
+
+
+
+Responses:
+
+	.application = resource-transfer;
+	.protocol-version = "1.0";
+	.response = {
+		.status = ok;
+		.error = {};
+		.info = {
+			.processed_uuid = 18446744073709551615;
+			.processed_octets = 142953;
+		};
+	};
+
+	.application = resource-transfer;
+	.protocol-version = "1.0";
+	.response = {
+		.status = failed;
+		.error = {
+			.code = 2;
+			.message = "A resource with the uuid 18446744073709551615 already exists.";
+			.request_was = {
+				.op = add-resource;
+				.parameter = {
+					.uuid = 18446744073709551615;
+					.resource-name = "document.pdf";
+					.stream-name = resource-stream;
+				};
+			};
+		};
+	};
