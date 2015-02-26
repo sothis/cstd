@@ -11,7 +11,6 @@
 
 #include "restrans_client.h"
 
-
 #define	HOSTNAME	"localhost"
 #define PORT		"4242"
 #define TESTFILE	"/home/sothis/rimg.bin"

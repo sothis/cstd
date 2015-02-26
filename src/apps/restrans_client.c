@@ -2,6 +2,9 @@
 
 #include <inttypes.h>
 #include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+
 #include <sdtl.h>
 
 const char* const restrans_prot_versions[] = {

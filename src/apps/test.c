@@ -54,7 +54,7 @@ int cstd_main(int argc, char* argv[], char* envp[])
 #endif
 
 #if 1
-	unsigned char rdata[2048];
+	//unsigned char rdata[2048];
 	kfile_read_fd_t rfd;
 	kfile_open_opts_t kfoopts = {
 		.uuid			= 18446744073709551615ul,

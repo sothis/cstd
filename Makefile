@@ -241,11 +241,13 @@ endif
 # determine intermediate object filenames
 C_SRC		:= $(filter %.c, $(SRC))
 CXX_SRC		:= $(filter %.cpp, $(SRC))
-CLI_C_SRC	:= $(filter %.c, $(CLI_SRC))
 
 DEPS		:= $(patsubst %.c, $(BUILDDIR)/.obj/%_C.dep, $(C_SRC))
 DEPS		+= $(patsubst %.cpp, $(BUILDDIR)/.obj/%_CXX.dep, $(CXX_SRC))
-DEPS		+= $(patsubst %.c, $(BUILDDIR)/.obj/%_C.dep, $(CLI_C_SRC))
+
+DEPS		+= $(patsubst %.c, $(BUILDDIR)/.obj/%_C.dep, $(SRC_TEST))
+DEPS		+= $(patsubst %.c, $(BUILDDIR)/.obj/%_C.dep, $(SRC_CLIENT))
+DEPS		+= $(patsubst %.c, $(BUILDDIR)/.obj/%_C.dep, $(SRC_SERVER))
 
 OBJECTS		:= $(patsubst %.c, $(BUILDDIR)/.obj/%_C.o, $(C_SRC))
 OBJECTS		+= $(patsubst %.cpp, $(BUILDDIR)/.obj/%_CXX.o, $(CXX_SRC))
