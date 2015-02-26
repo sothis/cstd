@@ -74,7 +74,7 @@ void xuuid_to_path(uint64_t uuid, char** compl, char** fpath, char** fname)
 	memset(path, 0, 20);
 	memset(cpath, 0, 40);
 	memset(uuid_ascii, 0, 20);
-	snprintf(uuid_ascii, 21, "%020" PRIu64 "", uuid);
+	snprintf(uuid_ascii, 21, "%020" PRIu64, uuid);
 
 	for (j = 0, i = 0; i <= 16; i += 4, j += 5) {
 		if (i < 16) {

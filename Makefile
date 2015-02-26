@@ -136,9 +136,13 @@ SRC		+= ./src/socket/sio.c
 
 SRC_TEST	+= ./src/apps/test.c
 SRC_TEST	+= ./src/apps/kfile.c
+
 SRC_CLIENT	+= ./src/apps/client.c
+SRC_CLIENT	+= ./src/apps/restrans_client.c
+
 SRC_SERVER	+= ./src/apps/server.c
 SRC_SERVER	+= ./src/apps/kfile.c
+SRC_SERVER	+= ./src/apps/restrans_srv.c
 
 ################################################################################
 

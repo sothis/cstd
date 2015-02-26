@@ -9,7 +9,7 @@
 
 #include "sio.h"
 
-#include "sdtl.h"
+//#include "sdtl.h"
 
 #define	HOSTNAME	"localhost"
 #define PORT		"4242"
@@ -118,7 +118,7 @@ int cstd_main(int argc, char* argv[], char* envp[])
 		freeaddrinfo(servinfo);
 		exit(~0);
 	}
-
+#if 0
 	sdtl_write_fd_t sdtl_wfd;
 	int dbg_fd = fileno(stdout);
 
@@ -159,7 +159,7 @@ int cstd_main(int argc, char* argv[], char* envp[])
 /* not needed if sdtl_write_end_octet_stream() is the last sdtl write operation
  * since it is called implicitely there */
 //	sdtl_flush(&sdtl_wfd);
-
+#endif
 	close(fd);
 	freeaddrinfo(servinfo);
 

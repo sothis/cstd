@@ -1,3 +1,6 @@
+#ifndef _KFILE_H_
+#define _KFILE_H_
+
 #include "cstd.h"
 #include <libk/libk.h>
 
@@ -119,3 +122,5 @@ const char* kfile_get_resource_name(kfile_read_fd_t fd);
 ssize_t kfile_read(kfile_read_fd_t fd, void* buf, size_t nbyte);
 
 int kfile_close(kfile_fd_t fd);
+
+#endif /* _KFILE_H_ */
