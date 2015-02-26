@@ -12,12 +12,12 @@ typedef struct restrans_add_param_t
 
 typedef struct restrans_get_param_t
 {
-	uint64_t	uuid;
+	char		uuid[21];
 } restrans_get_param_t;
 
 typedef struct restrans_del_param_t
 {
-	uint64_t	uuid;
+	char		uuid[21];
 } restrans_del_param_t;
 
 typedef enum restrans_operation_t
@@ -35,17 +35,6 @@ typedef enum restrans_protver_t
 	RESTRANS_PROT_MAX
 } restrans_protver_t;
 
-const char* const restrans_prot_versions[] = {
-	"0.1",
-	"1.0"
-};
-
-const char* const restrans_operations[] = {
-	"add-resource",
-	"delete-resource",
-	"get-resource"
-};
-
 typedef struct restrans_request_opts_t
 {
 	restrans_protver_t	protversion;
@@ -61,5 +50,7 @@ typedef struct restrans_request_t
 	void*			param;
 } restrans_request_t;
 
+extern int restrans_op_add_resource
+(int socket, uint64_t uuid, const char* resname, int in_fd);
 
 #endif /* _RESTRANS_CLIENT_H_ */

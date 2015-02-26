@@ -4,6 +4,17 @@
 #include <stdio.h>
 #include <sdtl.h>
 
+const char* const restrans_prot_versions[] = {
+	"0.1",
+	"1.0"
+};
+
+const char* const restrans_operations[] = {
+	"add-resource",
+	"delete-resource",
+	"get-resource"
+};
+
 void* restrans_new_add_param(uint64_t uuid, const char* resname)
 {
 	restrans_add_param_t* param;
@@ -93,8 +104,16 @@ void restrans_req_free(restrans_request_t* req)
 	}
 }
 
-int restrans_op_add_resource(uint64_t uuid, const char* resname)
+int restrans_op_add_resource
+(int socket, uint64_t uuid, const char* resname, int in_fd)
 {
+	sdtl_write_fd_t sdtl_wfd;
+	unsigned char buf[65535];
+	uint16_t nread = 0;
+	int dbg_fd = fileno(stdout);
+
+	sdtl_open_write(&sdtl_wfd, socket, &dbg_fd);
+
 	restrans_request_opts_t ropts;
 	restrans_request_t* req;
 	restrans_add_param_t* param;
@@ -111,7 +130,7 @@ int restrans_op_add_resource(uint64_t uuid, const char* resname)
 		restrans_free_add_param(param);
 		return -1;
 	}
-#if 0
+
 	sdtl_write_enum(&sdtl_wfd, "application", req->application);
 	sdtl_write_utf8string(&sdtl_wfd, "protocol-version", req->protversion);
 	  sdtl_write_start_struct(&sdtl_wfd, "request");
@@ -122,6 +141,15 @@ int restrans_op_add_resource(uint64_t uuid, const char* resname)
 	    sdtl_write_enum(&sdtl_wfd, "stream-name", param->streamname);
 	  sdtl_write_end_struct(&sdtl_wfd);
 	sdtl_write_end_struct(&sdtl_wfd);
-#endif
+
+	sdtl_write_start_octet_stream(&sdtl_wfd, param->streamname);
+	while ((nread = read(in_fd, buf, 65535)) > 0) {
+		if (sdtl_write_chunk(&sdtl_wfd, buf, nread)) {
+			return -1;
+		}
+	}
+	sdtl_write_end_octet_stream(&sdtl_wfd);
+
+
 	return 0;
 }

@@ -9,7 +9,8 @@
 
 #include "sio.h"
 
-//#include "sdtl.h"
+#include "restrans_client.h"
+
 
 #define	HOSTNAME	"localhost"
 #define PORT		"4242"
@@ -118,16 +119,8 @@ int cstd_main(int argc, char* argv[], char* envp[])
 		freeaddrinfo(servinfo);
 		exit(~0);
 	}
-#if 0
-	sdtl_write_fd_t sdtl_wfd;
-	int dbg_fd = fileno(stdout);
 
-	sdtl_open_write(&sdtl_wfd, fd, &dbg_fd);
-
-	unsigned char buf[65535];
-	int file_fd = -1;
-	uint16_t nread = 0;
-	file_fd = open(TESTFILE, O_RDONLY);
+	int file_fd = open(TESTFILE, O_RDONLY);
 
 	if (file_fd < 0) {
 		perror("unable to openfile");
@@ -135,31 +128,11 @@ int cstd_main(int argc, char* argv[], char* envp[])
 		exit(~0);
 	}
 
-	memset(buf, 0, 65535);
-
-	sdtl_write_enum(&sdtl_wfd, "application", "resource-transfer");
-	sdtl_write_utf8string(&sdtl_wfd, "protocol-version", "1.0");
-	sdtl_write_start_struct(&sdtl_wfd, "operation");
-		sdtl_write_enum(&sdtl_wfd, "do", "add-resource");
-		sdtl_write_start_struct(&sdtl_wfd, "parameter");
-			sdtl_write_number(&sdtl_wfd, "uuid", "18446744073709551615");
-			sdtl_write_utf8string(&sdtl_wfd, "resource-name", "document.pdf");
-			sdtl_write_enum(&sdtl_wfd, "stream-name", "resource-stream");
-		sdtl_write_end_struct(&sdtl_wfd);
-	sdtl_write_end_struct(&sdtl_wfd);
-
-	sdtl_write_start_octet_stream(&sdtl_wfd, "resource-stream");
-	while ((nread = read(file_fd, buf, 65535)) > 0) {
-		if (sdtl_write_chunk(&sdtl_wfd, buf, nread)) {
-			pdie("sdtl_write_chunk() failed");
-		}
+	if (restrans_op_add_resource(fd ,31337, "deine mudder", file_fd) < 0)
+	{
+		printf("restrans_op_add_resource failed.\n");
 	}
-	sdtl_write_end_octet_stream(&sdtl_wfd);
 
-/* not needed if sdtl_write_end_octet_stream() is the last sdtl write operation
- * since it is called implicitely there */
-//	sdtl_flush(&sdtl_wfd);
-#endif
 	close(fd);
 	freeaddrinfo(servinfo);
 
