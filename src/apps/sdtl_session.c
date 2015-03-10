@@ -28,3 +28,13 @@ sdtl_session_t* sdtl_session_create(sdtl_session_opts_t* opts)
 
 	return sess;
 }
+
+void sdtl_session_destroy(sdtl_session_t* sess)
+{
+	if (!sess)
+		return;
+
+	/* sdtl_open_write() && sdtl_open_read() don't allocate any
+	 * memory on the heap */
+	free(sess);
+}

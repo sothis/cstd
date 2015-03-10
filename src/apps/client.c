@@ -9,7 +9,7 @@
 
 #include "sio.h"
 
-#include "restrans_client.h"
+#include "sdtl_session.h"
 
 #define	HOSTNAME	"localhost"
 #define PORT		"4242"
@@ -73,6 +73,11 @@ const char* socket_types[] = {
 	"SOCK_PACKET"
 };
 
+int on_sdtl_read(void* userdata, sdtl_event_t e, sdtl_data_t* data)
+{
+	return 0;
+}
+
 int cstd_main(int argc, char* argv[], char* envp[])
 {
 	struct addrinfo filter, *servinfo, *p;
@@ -127,10 +132,36 @@ int cstd_main(int argc, char* argv[], char* envp[])
 		exit(~0);
 	}
 
+#if 0
 	if (restrans_op_add_resource(fd ,31337, "deine mudder", file_fd) < 0)
 	{
 		printf("restrans_op_add_resource failed.\n");
 	}
+#endif
+	sdtl_session_t* sdtlsess = 0;
+	sdtl_session_opts_t ssopts = {
+		.role = SDTL_ROLE_CLIENT,
+		.socket = fd,
+		.use_read_debug_fd = 1,
+		.use_write_debug_fd = 1,
+		.read_debug_fd = fileno(stdout),
+		.write_debug_fd = fileno(stdout),
+		.on_event = &on_sdtl_read,
+		.userdata = 0,
+	};
+
+	sdtlsess = sdtl_session_create(&ssopts);
+	if (!sdtlsess)
+		pdie("sdtl_session_create()");
+
+
+//	sdtl_session_op(sdtlsess, RESTRANS_OPERATION_ADD, 31337, "somedoc.pdf", file_fd);
+
+
+
+
+	sdtl_session_destroy(sdtlsess);
+
 
 	close(fd);
 	freeaddrinfo(servinfo);

@@ -30,5 +30,6 @@ typedef struct sdtl_session_opts_t {
 } sdtl_session_opts_t;
 
 sdtl_session_t* sdtl_session_create(sdtl_session_opts_t* opts);
+void sdtl_session_destroy(sdtl_session_t* sess);
 
 #endif /* _SDTL_SESSION_H_ */
