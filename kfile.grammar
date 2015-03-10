@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ufwb version="1.9">
+    <grammar name="New grammar" start="id:4" author="sothis">
+        <structure name="KFILE" id="4" encoding="UTF-8" endian="little" signed="no">
+            <structure name="preamble" id="18">
+                <string name="kfile magic" mustmatch="yes" id="8" type="fixed-length" length="6">
+                    <fixedvalues>
+                        <fixedvalue name="magic" value="KFILE"/>
+                    </fixedvalues>
+                </string>
+                <string name="kfile version" id="9" type="fixed-length" length="4"/>
+                <number name="file size" id="10" type="integer" length="8"/>
+                <number name="ed_length" id="29" type="integer" length="8"/>
+            </structure>
+            <structure name="ctrlhdr" id="16">
+                <number name="hashfunction" id="21" type="integer" length="1"/>
+                <number name="digestsize" id="24" type="integer" length="1"/>
+                <number name="cipher" id="22" type="integer" length="1"/>
+                <number name="ciphermode" id="23" type="integer" length="1"/>
+                <number name="keysize" id="25" type="integer" length="1"/>
+                <number name="kdf iterations" id="20" type="integer" length="1"/>
+                <binary name="kdf_salt" id="26" length="128"/>
+                <binary name="nonce" id="27" length="128"/>
+            </structure>
+            <binary name="encrypted data" id="28" length="preamble.ed_lenght"/>
+            <binary name="cipher digest" id="30" length="ctrlheader.digestsize"/>
+        </structure>
+    </grammar>
+</ufwb>
