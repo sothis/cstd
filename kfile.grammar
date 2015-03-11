@@ -1,29 +1,39 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ufwb version="1.9">
-    <grammar name="New grammar" start="id:4" author="sothis">
-        <structure name="KFILE" id="4" encoding="UTF-8" endian="little" signed="no">
-            <structure name="preamble" id="18">
-                <string name="kfile magic" mustmatch="yes" id="8" type="fixed-length" length="6">
+    <grammar name="kfile" start="id:59" author="Janos Laube" email="janos.dev@gmail.com">
+        <structure name="kfile_t" id="59" encoding="UTF-8" endian="little" signed="no">
+            <structure name="kfile_preamble_t" id="60">
+                <string name="magic" mustmatch="yes" id="61" type="fixed-length" length="6">
                     <fixedvalues>
                         <fixedvalue name="magic" value="KFILE"/>
                     </fixedvalues>
                 </string>
-                <string name="kfile version" id="9" type="fixed-length" length="4"/>
-                <number name="file size" id="10" type="integer" length="8"/>
-                <number name="ed_length" id="29" type="integer" length="8"/>
+                <string name="version" id="62" type="fixed-length" length="4"/>
+                <number name="cipher_data_bytes" id="63" type="integer" length="8"/>
             </structure>
-            <structure name="ctrlhdr" id="16">
-                <number name="hashfunction" id="21" type="integer" length="1"/>
-                <number name="digestsize" id="24" type="integer" length="1"/>
-                <number name="cipher" id="22" type="integer" length="1"/>
-                <number name="ciphermode" id="23" type="integer" length="1"/>
-                <number name="keysize" id="25" type="integer" length="1"/>
-                <number name="kdf iterations" id="20" type="integer" length="1"/>
-                <binary name="kdf_salt" id="26" length="128"/>
-                <binary name="nonce" id="27" length="128"/>
+            <structure name="kfile_control_header_t" id="65">
+                <number name="hash_function" id="66" type="integer" length="1"/>
+                <number name="digest_bytes" id="67" type="integer" length="1"/>
+                <number name="cipher_function" id="68" type="integer" length="1"/>
+                <number name="cipher_mode" id="69" type="integer" length="1"/>
+                <number name="key_bytes" id="70" type="integer" length="1"/>
+                <number name="kdf_function" id="71" type="integer" length="1"/>
+                <number name="kdf_complexity" id="72" type="integer" length="1"/>
             </structure>
-            <binary name="encrypted data" id="28" length="preamble.ed_lenght"/>
-            <binary name="cipher digest" id="30" length="ctrlheader.digestsize"/>
+            <structure name="kfile_kdf_header_t" id="74">
+                <number name="kdf_salt_bytes" id="75" type="integer" length="1"/>
+                <binary name="kdf_salt" id="76" length="this.kdf_salt_bytes+1"/>
+            </structure>
+            <structure name="kfile_iv_header_t" id="78">
+                <number name="iv_bytes" id="79" type="integer" length="1"/>
+                <binary name="iv" id="80" length="this.iv_bytes+1"/>
+            </structure>
+            <structure name="kfile_cipher_data_t" id="82">
+                <binary name="cipher_data" id="83" length="kfile_preamble_t.cipher_data_bytes"/>
+            </structure>
+            <structure name="kfile_cipher_mac_t" id="85">
+                <binary name="cipher_mac" id="86" length="kfile_control_header_t.digest_bytes+1"/>
+            </structure>
         </structure>
     </grammar>
 </ufwb>

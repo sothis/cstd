@@ -110,6 +110,7 @@ INCLUDES	+= -I./src
 INCLUDES	+= -I./src/mp
 INCLUDES	+= -I./src/socket
 INCLUDES	+= -I./src/apps
+INCLUDES	+= -I./src/apps/kfile
 
 SRC		+= ./src/version.c
 .PHONY: ./src/version.c
@@ -135,7 +136,8 @@ SRC		+= ./src/socket/sio.c
 
 
 SRC_TEST	+= ./src/apps/test.c
-SRC_TEST	+= ./src/apps/kfile.c
+SRC_TEST	+= ./src/apps/kfile/kfile.c
+SRC_TEST	+= ./src/apps/kfile/create.c
 
 SRC_CLIENT	+= ./src/apps/client.c
 SRC_CLIENT	+= ./sdtl/src/sdtl.c
@@ -144,7 +146,7 @@ SRC_CLIENT	+= ./src/apps/restrans_client.c
 
 SRC_SERVER	+= ./src/apps/server.c
 SRC_SERVER	+= ./sdtl/src/sdtl.c
-SRC_SERVER	+= ./src/apps/kfile.c
+SRC_SERVER	+= ./src/apps/kfile/kfile.c
 SRC_SERVER	+= ./src/apps/restrans_srv.c
 
 ################################################################################

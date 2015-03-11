@@ -224,7 +224,7 @@ static void _kfile_init_algorithms_with_opts(kfile_t* kf, kfile_create_opts_t* o
 			KFILE_MAX_IV_LENGTH);
 	}
 	kf->key = _k_key_derive_simple1024(opts->low_entropy_pass,
-		kf->header.kdf_salt, opts->kdf_iterations);
+		kf->header.kdf_salt, 128, opts->kdf_iterations);
 	if (!kf->key)
 		pdie("KFILE _k_key_derive_simple1024()");
 
@@ -288,7 +288,7 @@ static void _kfile_init_algorithms_with_file(kfile_t* kf, kfile_open_opts_t* opt
 	/* check iv and kdf_salt here against zero_nonce */
 
 	kf->key = _k_key_derive_simple1024(opts->low_entropy_pass,
-		kf->header.kdf_salt, kf->header.kdf_iterations);
+		kf->header.kdf_salt, 128, kf->header.kdf_iterations);
 	if (!kf->key)
 		pdie("KFILE _k_key_derive_simple1024()");
 
@@ -325,8 +325,8 @@ kfile_write_fd_t kfile_create(kfile_create_opts_t* opts)
 	kf->iobuf_size = opts->iobuf_size;
 	kf->iobuf = xmalloc(opts->iobuf_size);
 
-	strcpy(kf->header.magic, KFILE_MAGIC);
-	strcpy(kf->header.version, kfile_version_strings[opts->version]);
+	strcpy(kf->preamble.magic, KFILE_MAGIC);
+	strcpy(kf->preamble.version, kfile_version_strings[opts->version]);
 	kf->header.uuid = opts->uuid;
 	kf->header.hashfunction = opts->hashfunction;
 	kf->header.hashsize = opts->hashsize;
@@ -372,6 +372,7 @@ kfile_write_fd_t kfile_create(kfile_create_opts_t* opts)
 
 	return kf->fd;
 }
+
 
 void _encrypt_io_buf(kfile_t* kf, size_t nbyte)
 {

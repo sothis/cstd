@@ -18,6 +18,9 @@ typedef enum kfile_version_t {
 	KFILE_VERSION_MAX
 } kfile_version_t;
 
+#include "kfile_ondisk.h"
+#include "kfile_create.h"
+
 typedef struct kfile_header_t {
 	/* Magic and version are stored including the terminating zero byte
 	 * on disk. */
@@ -70,6 +73,12 @@ typedef struct kfile_t {
 	unsigned char*	datadigest;
 	unsigned char*	cipherdigest;
 	kfile_header_t	header;
+
+	kfile_preamble_t	preamble;
+	kfile_control_header_t	control;
+	kfile_kdf_header_t	kdf_header;
+	kfile_iv_header_t	iv_header;
+
 } kfile_t;
 
 typedef struct kfile_create_opts_t {
@@ -108,11 +117,29 @@ typedef struct kfile_open_opts_t {
 	char		low_entropy_pass[KFILE_MAX_NAME_LENGTH];
 } kfile_open_opts_t;
 
+
+static inline void assign_uint8_size(uint8_t* dest, uint16_t val)
+{
+	*dest = (uint8_t)(val - 1);
+}
+
+static inline int check_uint8_size(uint16_t val)
+{
+	if (!val)
+		return -1;
+
+	if (val > 256)
+		return -1;
+
+	return 0;
+}
+
 typedef int kfile_write_fd_t;
 typedef int kfile_read_fd_t;
 typedef int kfile_fd_t;
 
 kfile_write_fd_t kfile_create(kfile_create_opts_t* opts);
+kfile_write_fd_t kfile_create2(kfile_create_opts2_t* opts);
 kfile_read_fd_t kfile_open(kfile_open_opts_t* opts);
 
 int kfile_update(kfile_write_fd_t fd, const void* buf, size_t nbyte);
