@@ -27,7 +27,7 @@ int cstd_main(int argc, char* argv[], char* envp[])
 #if 1
 
 #if 1
-	unsigned char sdata[2048];
+	unsigned char sdata[4096];
 	kfile_write_fd_t wfd;
 	kfile_create_opts2_t kfcopts = {
 		.uuid			= 18446744073709551615ul,
@@ -39,14 +39,14 @@ int cstd_main(int argc, char* argv[], char* envp[])
 		.cipher_mode		= BLK_CIPHER_MODE_CTR,
 		.key_bytes		= 32,
 		.kdf_function		= KDF_SKEIN_1024,
-		.kdf_complexity		= 64,
+		.kdf_complexity		= 23,
 		.iobuf_size		= 65536,
 		.resource_name		= { "some_document.pdf" },
 		.low_entropy_pass	= { "test1234" }
 	};
 
-	memset(sdata, 'z', 2048);
-	sdata[2047] = 0;
+	memset(sdata, 'z', 4096);
+	sdata[4095] = 0;
 	wfd = kfile_create2(&kfcopts);
 	if (wfd < 0)
 		pdie("kfile_create()");
