@@ -29,27 +29,28 @@ int cstd_main(int argc, char* argv[], char* envp[])
 #if 1
 	unsigned char sdata[2048];
 	kfile_write_fd_t wfd;
-	kfile_create_opts_t kfcopts = {
+	kfile_create_opts2_t kfcopts = {
 		.uuid			= 18446744073709551615ul,
-		.filemode		= 0400,
+		.file_mode		= 0400,
 		.version		= KFILE_VERSION_0_1,
-		.hashfunction		= HASHSUM_SKEIN_512,
-		.hashsize		= 512,
-		.cipher			= BLK_CIPHER_AES,
-		.ciphermode		= BLK_CIPHER_MODE_CTR,
-		.keysize		= 256,
-		.kdf_iterations		= 2003,
+		.hash_function		= HASHSUM_SKEIN_512,
+		.digest_bytes		= 64,
+		.cipher_function	= BLK_CIPHER_AES,
+		.cipher_mode		= BLK_CIPHER_MODE_CTR,
+		.key_bytes		= 32,
+		.kdf_function		= KDF_SKEIN_1024,
+		.kdf_complexity		= 64,
 		.iobuf_size		= 65536,
-		.resourcename		= { "some_document.pdf" },
+		.resource_name		= { "some_document.pdf" },
 		.low_entropy_pass	= { "test1234" }
 	};
 
 	memset(sdata, 'z', 2048);
 	sdata[2047] = 0;
-	wfd = kfile_create(&kfcopts);
+	wfd = kfile_create2(&kfcopts);
 	if (wfd < 0)
 		pdie("kfile_create()");
-	kfile_update(wfd, sdata, sizeof(sdata));
+//	kfile_update(wfd, sdata, sizeof(sdata));
 	kfile_write_digests_and_close(wfd);
 #endif
 

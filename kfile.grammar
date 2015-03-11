@@ -1,38 +1,38 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ufwb version="1.9">
-    <grammar name="kfile" start="id:59" author="Janos Laube" email="janos.dev@gmail.com">
-        <structure name="kfile_t" id="59" encoding="UTF-8" endian="little" signed="no">
-            <structure name="kfile_preamble_t" id="60">
-                <string name="magic" mustmatch="yes" id="61" type="fixed-length" length="6">
+    <grammar name="kfile" start="id:2" author="Janos Laube" email="janos.dev@gmail.com">
+        <structure name="kfile_t" id="2" encoding="UTF-8" endian="little" signed="no">
+            <structure name="kfile_preamble_t" id="3">
+                <string name="magic" mustmatch="yes" id="4" fillcolor="FFFF00" type="zero-terminated">
                     <fixedvalues>
                         <fixedvalue name="magic" value="KFILE"/>
                     </fixedvalues>
                 </string>
-                <string name="version" id="62" type="fixed-length" length="4"/>
-                <number name="cipher_data_bytes" id="63" type="integer" length="8"/>
+                <string name="version" id="5" fillcolor="00FF00" type="zero-terminated"/>
+                <number name="cipher_data_bytes" id="6" fillcolor="5500FF" type="integer" length="8"/>
             </structure>
-            <structure name="kfile_control_header_t" id="65">
-                <number name="hash_function" id="66" type="integer" length="1"/>
-                <number name="digest_bytes" id="67" type="integer" length="1"/>
-                <number name="cipher_function" id="68" type="integer" length="1"/>
-                <number name="cipher_mode" id="69" type="integer" length="1"/>
-                <number name="key_bytes" id="70" type="integer" length="1"/>
-                <number name="kdf_function" id="71" type="integer" length="1"/>
-                <number name="kdf_complexity" id="72" type="integer" length="1"/>
+            <structure name="kfile_control_header_t" id="8">
+                <number name="hash_function" id="9" type="integer" length="1"/>
+                <number name="digest_bytes" id="10" type="integer" length="1"/>
+                <number name="cipher_function" id="11" type="integer" length="1"/>
+                <number name="cipher_mode" id="12" type="integer" length="1"/>
+                <number name="key_bytes" id="13" type="integer" length="1"/>
+                <number name="kdf_function" id="14" type="integer" length="1"/>
+                <number name="kdf_complexity" id="15" type="integer" length="1"/>
             </structure>
-            <structure name="kfile_kdf_header_t" id="74">
-                <number name="kdf_salt_bytes" id="75" type="integer" length="1"/>
-                <binary name="kdf_salt" id="76" length="this.kdf_salt_bytes+1"/>
+            <structure name="kfile_kdf_header_t" id="17">
+                <number name="kdf_salt_bytes" id="18" type="integer" length="1"/>
+                <binary name="kdf_salt" id="19" length="kdf_salt_bytes+1"/>
             </structure>
-            <structure name="kfile_iv_header_t" id="78">
-                <number name="iv_bytes" id="79" type="integer" length="1"/>
-                <binary name="iv" id="80" length="this.iv_bytes+1"/>
+            <structure name="kfile_iv_header_t" id="21">
+                <number name="iv_bytes" id="22" type="integer" length="1"/>
+                <binary name="iv" id="23" length="iv_bytes+1"/>
             </structure>
-            <structure name="kfile_cipher_data_t" id="82">
-                <binary name="cipher_data" id="83" length="kfile_preamble_t.cipher_data_bytes"/>
+            <structure name="kfile_cipher_data_t" id="25">
+                <binary name="cipher_data" id="26" length="kfile_preamble_t.cipher_data_bytes"/>
             </structure>
-            <structure name="kfile_cipher_mac_t" id="85">
-                <binary name="cipher_mac" id="86" length="kfile_control_header_t.digest_bytes+1"/>
+            <structure name="kfile_cipher_mac_t" id="28">
+                <binary name="cipher_mac" id="29" length="kfile_control_header_t.digest_bytes+1"/>
             </structure>
         </structure>
     </grammar>

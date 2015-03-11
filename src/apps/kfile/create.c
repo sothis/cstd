@@ -7,6 +7,8 @@
 #include <sys/stat.h>
 #include <inttypes.h>
 
+#include "libk/src/utils/dumphx.h"
+
 #define KFILE_MAGIC		("KFILE")
 #define KFILE_VERSION_LENGTH	(4)
 
@@ -197,6 +199,7 @@ static int _kfile_init_algorithms_with_opts
 	while (!memcmp(kf->header.iv, zero_nonce, kf->iv_header.iv_bytes+1)) {
 		k_prng_update(kf->prng, kf->header.iv, kf->iv_header.iv_bytes+1);
 	}
+
 	if (k_sc_set_key(kf->scipher, kf->header.iv, kf->key, opts->key_bytes * 8))
 		die("KFILE unable to set stream cipher key");
 
@@ -325,16 +328,26 @@ kfile_write_fd_t kfile_create2(kfile_create_opts2_t* opts)
 	if (file_set_userdata(kf->fd, kf))
 		die("KFILE file_set_userdata()");
 
-	if (xwrite(kf->fd, &kf->preamble, sizeof(kfile_header_t)))
+	dumphx("salt", kf->kdf_header.kdf_salt, kf->kdf_header.kdf_salt_bytes+1);
+	dumphx("key", kf->key, 128);
+	dumphx("iv", kf->iv_header.iv, kf->iv_header.iv_bytes+1);
+
+	if (xwrite(kf->fd, &kf->preamble, sizeof(kfile_preamble_t)))
 		pdie("KFILE can't write file header");
 
-	if (xwrite(kf->fd, &kf->control, sizeof(kfile_header_t)))
+	if (xwrite(kf->fd, &kf->control, sizeof(kfile_control_header_t)))
 		pdie("KFILE can't write file header");
 
-	if (xwrite(kf->fd, &kf->kdf_header, sizeof(kfile_header_t)))
+	if (xwrite(kf->fd, &kf->kdf_header.kdf_salt_bytes, 1))
 		pdie("KFILE can't write file header");
 
-	if (xwrite(kf->fd, &kf->iv_header, sizeof(kfile_header_t)))
+	if (xwrite(kf->fd, kf->kdf_header.kdf_salt, kf->kdf_header.kdf_salt_bytes+1))
+		pdie("KFILE can't write file header");
+
+	if (xwrite(kf->fd, &kf->iv_header.iv_bytes, 1))
+		pdie("KFILE can't write file header");
+
+	if (xwrite(kf->fd, kf->iv_header.iv, kf->iv_header.iv_bytes+1))
 		pdie("KFILE can't write file header");
 
 //	_kfile_calculate_header_digest(kf);
@@ -343,7 +356,7 @@ kfile_write_fd_t kfile_create2(kfile_create_opts2_t* opts)
 	 * increment filesize implicitly */
 //	kf->header.filesize = sizeof(kfile_header_t) + kf->digestbytes;
 
-
+#if 0
 	if (kfile_update(kf->fd, kf->headerdigest, kf->digestbytes) < 0)
 		pdie("KFILE kfile_update(kf->headerdigest)");
 
@@ -352,6 +365,7 @@ kfile_write_fd_t kfile_create2(kfile_create_opts2_t* opts)
 
 	if (kfile_update(kf->fd, opts->resource_name, kf->resourcename_len) < 0)
 		pdie("KFILE kfile_update(opts->resourcename)");
+#endif
 
 	return kf->fd;
 err:

@@ -498,7 +498,7 @@ void kfile_write_digests_and_close(kfile_write_fd_t fd)
 	kf = file_get_userdata(fd);
 	if (!kf)
 		die("KFILE file_get_userdata()");
-
+#if 0
 	k_hash_final(kf->hash_plaintext, kf->datadigest);
 
 	if (kfile_update(kf->fd, kf->datadigest, kf->digestbytes) < 0)
@@ -508,7 +508,7 @@ void kfile_write_digests_and_close(kfile_write_fd_t fd)
 
 	if (xwrite(kf->fd, kf->cipherdigest, kf->digestbytes))
 		pdie("KFILE unable to write checksum");
-
+#endif
 #if 0
 	printf("filebytes: '%lu'\n", kf->header.filesize);
 	if (lseek(kf->fd, 10+8, SEEK_SET) < 0)
