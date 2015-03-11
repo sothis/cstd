@@ -189,9 +189,11 @@ static int _kfile_init_algorithms_with_opts
 		k_prng_update(kf->prng, kf->header.kdf_salt, kf->kdf_header.kdf_salt_bytes+1);
 	}
 
-	kf->key = _k_key_derive_simple1024(opts->low_entropy_pass, kf->kdf_header.kdf_salt, kf->kdf_header.kdf_salt_bytes+1, primes_5_digit[opts->kdf_complexity]);
+	kf->key = _k_key_derive_skein_1024(opts->low_entropy_pass,
+		kf->kdf_header.kdf_salt, kf->kdf_header.kdf_salt_bytes+1,
+		opts->key_bytes, primes_5_digit[opts->kdf_complexity]);
 	if (!kf->key)
-		pdie("KFILE _k_key_derive_simple1024()");
+		return -1;
 
 	k_prng_update(kf->prng, kf->iv_header.iv, kf->iv_header.iv_bytes+1);
 	while (!memcmp(kf->header.iv, zero_nonce, kf->iv_header.iv_bytes+1)) {
@@ -199,7 +201,7 @@ static int _kfile_init_algorithms_with_opts
 	}
 
 	if (k_sc_set_key(kf->scipher, kf->header.iv, kf->key, opts->key_bytes * 8))
-		die("KFILE unable to set stream cipher key");
+		return -1;
 
 	return 0;
 }

@@ -744,6 +744,10 @@ int kfile_close(kfile_fd_t fd)
 	if (!kf)
 		die("KFILE file_get_userdata()");
 
+	if (kf->kdf_header.kdf_salt)
+		free(kf->kdf_header.kdf_salt);
+	if (kf->iv_header.iv)
+		free(kf->iv_header.iv);
 	if (kf->path_ds)
 		closedir(kf->path_ds);
 	if (kf->hash_plaintext)
@@ -755,7 +759,7 @@ int kfile_close(kfile_fd_t fd)
 	if (kf->scipher)
 		k_sc_finish(kf->scipher);
 	if (kf->key)
-		k_free(kf->key);
+		free(kf->key);
 	if (kf->iobuf)
 		free(kf->iobuf);
 	if (kf->filename)
