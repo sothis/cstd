@@ -7,8 +7,6 @@
 #include <sys/stat.h>
 #include <inttypes.h>
 
-#include "libk/src/utils/dumphx.h"
-
 #define KFILE_MAGIC		("KFILE")
 #define KFILE_VERSION_LENGTH	(4)
 
@@ -286,6 +284,29 @@ static inline int check_create_opts(kfile_create_opts2_t* opts)
 	return 0;
 }
 
+static void _kfile_calculate_header_digest(kfile_t* kf)
+{
+	k_hash_update(kf->hash_plaintext, &kf->control, sizeof(kfile_control_header_t));
+
+	k_hash_update(kf->hash_plaintext, &kf->kdf_header.kdf_salt_bytes, 1);
+	k_hash_update(kf->hash_plaintext, kf->kdf_header.kdf_salt, kf->kdf_header.kdf_salt_bytes+1);
+
+	k_hash_update(kf->hash_plaintext, &kf->iv_header.iv_bytes, 1);
+	k_hash_update(kf->hash_plaintext, kf->iv_header.iv, kf->iv_header.iv_bytes+1);
+
+	k_hash_final(kf->hash_plaintext, kf->headerdigest);
+	k_hash_reset(kf->hash_plaintext);
+
+
+	k_hash_update(kf->hash_ciphertext, &kf->control, sizeof(kfile_control_header_t));
+
+	k_hash_update(kf->hash_ciphertext, &kf->kdf_header.kdf_salt_bytes, 1);
+	k_hash_update(kf->hash_ciphertext, kf->kdf_header.kdf_salt, kf->kdf_header.kdf_salt_bytes+1);
+
+	k_hash_update(kf->hash_ciphertext, &kf->iv_header.iv_bytes, 1);
+	k_hash_update(kf->hash_ciphertext, kf->iv_header.iv, kf->iv_header.iv_bytes+1);
+}
+
 kfile_write_fd_t kfile_create2(kfile_create_opts2_t* opts)
 {
 	kfile_t* kf = 0;
@@ -328,10 +349,6 @@ kfile_write_fd_t kfile_create2(kfile_create_opts2_t* opts)
 	if (file_set_userdata(kf->fd, kf))
 		die("KFILE file_set_userdata()");
 
-	dumphx("salt", kf->kdf_header.kdf_salt, kf->kdf_header.kdf_salt_bytes+1);
-	dumphx("key", kf->key, 128);
-	dumphx("iv", kf->iv_header.iv, kf->iv_header.iv_bytes+1);
-
 	if (xwrite(kf->fd, &kf->preamble, sizeof(kfile_preamble_t)))
 		pdie("KFILE can't write file header");
 
@@ -350,13 +367,13 @@ kfile_write_fd_t kfile_create2(kfile_create_opts2_t* opts)
 	if (xwrite(kf->fd, kf->iv_header.iv, kf->iv_header.iv_bytes+1))
 		pdie("KFILE can't write file header");
 
-//	_kfile_calculate_header_digest(kf);
+	_kfile_calculate_header_digest(kf);
 
 	/* header and terminating cipherdigest, kfile_update()'s
 	 * increment filesize implicitly */
 //	kf->header.filesize = sizeof(kfile_header_t) + kf->digestbytes;
 
-#if 0
+#if 1
 	if (kfile_update(kf->fd, kf->headerdigest, kf->digestbytes) < 0)
 		pdie("KFILE kfile_update(kf->headerdigest)");
 

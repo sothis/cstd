@@ -50,7 +50,7 @@ int cstd_main(int argc, char* argv[], char* envp[])
 	wfd = kfile_create2(&kfcopts);
 	if (wfd < 0)
 		pdie("kfile_create()");
-//	kfile_update(wfd, sdata, sizeof(sdata));
+	kfile_update(wfd, sdata, sizeof(sdata));
 	kfile_write_digests_and_close(wfd);
 #endif
 

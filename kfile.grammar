@@ -8,7 +8,7 @@
                         <fixedvalue name="magic" value="KFILE"/>
                     </fixedvalues>
                 </string>
-                <string name="version" id="5" fillcolor="00FF00" type="zero-terminated"/>
+                <string name="version" id="5" fillcolor="FFFF00" type="zero-terminated"/>
                 <number name="cipher_data_bytes" id="6" fillcolor="5500FF" type="integer" length="8"/>
             </structure>
             <structure name="kfile_control_header_t" id="8" fillcolor="AAFFFF">
@@ -29,10 +29,10 @@
                 <binary name="iv" id="23" fillcolor="00FF7F" length="iv_bytes+1"/>
             </structure>
             <structure name="kfile_cipher_data_t" id="25">
-                <binary name="cipher_data" id="26" length="kfile_preamble_t.cipher_data_bytes"/>
+                <binary name="cipher_data" id="26" fillcolor="55007F" length="cipher_data_bytes"/>
             </structure>
             <structure name="kfile_cipher_mac_t" id="28">
-                <binary name="cipher_mac" id="29" length="kfile_control_header_t.digest_bytes+1"/>
+                <binary name="cipher_mac" id="29" fillcolor="00FF7F" length="digest_bytes+1"/>
             </structure>
         </structure>
     </grammar>

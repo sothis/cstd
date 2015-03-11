@@ -427,6 +427,7 @@ int kfile_update(kfile_write_fd_t fd, const void *buf, size_t nbyte)
 			return -1;
 		total += nwritten;
 	}
+	kf->ciphersize += total;
 
 	return total;
 }
@@ -498,7 +499,7 @@ void kfile_write_digests_and_close(kfile_write_fd_t fd)
 	kf = file_get_userdata(fd);
 	if (!kf)
 		die("KFILE file_get_userdata()");
-#if 0
+#if 1
 	k_hash_final(kf->hash_plaintext, kf->datadigest);
 
 	if (kfile_update(kf->fd, kf->datadigest, kf->digestbytes) < 0)
@@ -509,11 +510,10 @@ void kfile_write_digests_and_close(kfile_write_fd_t fd)
 	if (xwrite(kf->fd, kf->cipherdigest, kf->digestbytes))
 		pdie("KFILE unable to write checksum");
 #endif
-#if 0
-	printf("filebytes: '%lu'\n", kf->header.filesize);
-	if (lseek(kf->fd, 10+8, SEEK_SET) < 0)
+#if 1
+	if (lseek(kf->fd, 10, SEEK_SET) < 0)
 		pdie("KFILE unable to set file pointer");
-	if (xwrite(kf->fd, &kf->header.filesize, sizeof(kf->header.filesize)))
+	if (xwrite(kf->fd, &kf->ciphersize, sizeof(kf->ciphersize)))
 		pdie("KFILE unable to write filesize");
 #endif
 	kfile_close(fd);

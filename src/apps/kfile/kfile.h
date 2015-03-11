@@ -60,6 +60,7 @@ typedef struct kfile_t {
 	k_prng_t*	prng;
 
 	size_t		filesize;
+	uint64_t	ciphersize;
 	size_t		noncebytes;
 	size_t		digestbytes;
 	char*		path;
