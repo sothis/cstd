@@ -1,0 +1,45 @@
+digraph kfile {
+	graph [rankdir=LR];
+	2	 [color="#000000",
+		label="<f0> kfile_t | <f1> kfile_preamble_t | <f2> kfile_control_header_t | <f3> kfile_kdf_header_t | <f4> kfile_iv_header_t | <f5> kfile\
+_cipher_data_t | <f6> kfile_cipher_mac_t",
+		root=true,
+		shape=record];
+	17	 [color="#000000",
+		label="<f0> kfile_kdf_header_t | <f1> kdf_salt_bytes | <f2> kdf_salt",
+		shape=record];
+	2:f3 -> 17:f0 [key=2,
+	label=contains,
+	style=bold];
+25 [color="#000000",
+	label="<f0> kfile_cipher_data_t | <f1> cipher_data",
+	shape=record];
+2:f5 -> 25:f0 [key=4,
+label=contains,
+style=bold];
+3 [color="#000000",
+label="<f0> kfile_preamble_t | <f1> magic | <f2> version | <f3> cipher_data_bytes",
+shape=record];
+2:f1 -> 3:f0 [key=0,
+label=contains,
+style=bold];
+21 [color="#000000",
+label="<f0> kfile_iv_header_t | <f1> iv_bytes | <f2> iv",
+shape=record];
+2:f4 -> 21:f0 [key=3,
+label=contains,
+style=bold];
+28 [color="#000000",
+label="<f0> kfile_cipher_mac_t | <f1> cipher_mac",
+shape=record];
+2:f6 -> 28:f0 [key=5,
+label=contains,
+style=bold];
+8 [color="#000000",
+label="<f0> kfile_control_header_t | <f1> hash_function | <f2> digest_bytes | <f3> cipher_function | <f4> cipher_mode | <f5> key_bytes \
+| <f6> kdf_function | <f7> kdf_complexity",
+shape=record];
+2:f2 -> 8:f0 [key=1,
+label=contains,
+style=bold];
+}
