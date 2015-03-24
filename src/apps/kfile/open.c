@@ -34,6 +34,66 @@ static void _kfile_calculate_header_digest(kfile_t* kf)
 	k_hash_update(kf->hash_ciphertext, kf->iv_header.iv, kf->iv_header.iv_bytes+1);
 }
 
+/* NOTE: also needed in kfile_read() */
+static ssize_t _fill_io_buf(kfile_t* kf, size_t nbyte)
+{
+	ssize_t nread = 0;
+	ssize_t total = 0;
+
+	while (total != nbyte) {
+		nread = read(kf->fd, kf->iobuf + total, nbyte - total);
+		if (nread < 0) {
+			if (errno == EINTR)
+				continue;
+			else return nread;
+		}
+		if (nread == 0) {
+			/* shall not happen */
+			return -1;
+		}
+		total += nread;
+	}
+	return total;
+}
+
+static int _check_cipherdigest(kfile_t* kf)
+{
+	ssize_t nread;
+	unsigned char cipherdigest_chk[KFILE_SIZE_MAX];
+
+	size_t blocks = kf->dyndata.cipher_data_bytes / kf->iobuf_size;
+	size_t remaining = kf->dyndata.cipher_data_bytes % kf->iobuf_size;
+
+	for (size_t i = 0; i < blocks; ++i) {
+		nread = _fill_io_buf(kf, kf->iobuf_size);
+		if (nread <= 0)
+			return -1;
+		k_hash_update(kf->hash_ciphertext, kf->iobuf, nread);
+	}
+	if (remaining) {
+		nread = _fill_io_buf(kf, remaining);
+		if (nread <= 0)
+			return -1;
+		k_hash_update(kf->hash_ciphertext, kf->iobuf, nread);
+	}
+
+	k_hash_final(kf->hash_ciphertext, cipherdigest_chk);
+	if (xread(kf->fd, kf->cipherdigest, kf->digestbytes) < 0)
+		return -1;
+
+	/* put read pointer back to cipher start */
+	if (lseek(kf->fd, kf->cipherstart, SEEK_SET) < 0) {
+		crit("KFILE lseek failed");
+		return -1;
+	}
+	if (memcmp(kf->cipherdigest, cipherdigest_chk, kf->digestbytes)) {
+		crit("KFILE cipher digest doesn't match");
+		return -1;
+	}
+
+	return 0;
+}
+
 static void _kfile_init_algorithms_with_file(kfile_t* kf, kfile_open_opts_t* opts)
 {
 	unsigned char zero_nonce[KFILE_SIZE_MAX];
@@ -103,10 +163,12 @@ static int _kfile_read_and_check_file_header(kfile_t* kf, kfile_open_opts_t* opt
 
 	memset(headerdigest_chk, 0, KFILE_SIZE_MAX);
 
+#if 0
 	if (kf->filesize < sizeof(kfile_header_t)) {
 		crit("KFILE filesize lower than expected");
 		return -1;
 	}
+#endif
 
 	if (xread(kf->fd, &kf->preamble, sizeof(kfile_preamble_t))
 		!= sizeof(kfile_preamble_t))
@@ -129,6 +191,8 @@ static int _kfile_read_and_check_file_header(kfile_t* kf, kfile_open_opts_t* opt
 	if (xread(kf->fd, &kf->dyndata, sizeof(kfile_dynamic_data_header_t))
 		!= sizeof(kfile_dynamic_data_header_t))
 		pdie("xread()");
+
+	/* Test here if kf->dyndata.cipher_data_bytes fit into filesize! */
 
 	if (xread(kf->fd, &kf->control, sizeof(kfile_control_header_t))
 		!= sizeof(kfile_control_header_t))
@@ -157,6 +221,12 @@ static int _kfile_read_and_check_file_header(kfile_t* kf, kfile_open_opts_t* opt
 		kf->iv_header.iv_bytes+1) !=
 		kf->iv_header.iv_bytes+1)
 		pdie("xread()");
+
+	kf->cipherstart = sizeof(kfile_preamble_t) +
+		sizeof(kfile_dynamic_data_header_t) +
+		sizeof(kfile_control_header_t) +
+		1 + (kf->kdf_header.kdf_salt_bytes+1) +
+		1 + (kf->iv_header.iv_bytes+1);
 
 	if (kf->control.hash_function >= HASHSUM_MAX)
 		{ crit("KFILE unsupported digest algorithm"); return -1; }
@@ -190,7 +260,6 @@ static int _kfile_read_and_check_file_header(kfile_t* kf, kfile_open_opts_t* opt
 
 	_kfile_calculate_header_digest(kf);
 
-#if 0
 	if (opts->check_cipherdigest) {
 		if (_check_cipherdigest(kf)) {
 			crit("KFILE cipher digest doesn't match. source file "
@@ -198,7 +267,7 @@ static int _kfile_read_and_check_file_header(kfile_t* kf, kfile_open_opts_t* opt
 			return -1;
 		}
 	}
-#endif
+
 	if (kfile_read(kf->fd, headerdigest_chk, kf->digestbytes) < 0) {
 		crit("KFILE unable to read header digest from file");
 		return -1;

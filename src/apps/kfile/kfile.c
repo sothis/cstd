@@ -11,11 +11,6 @@
 #include <inttypes.h>
 #include <sys/stat.h>
 
-#include "libk/src/utils/dumphx.h"
-
-/* bits to bytes with possible padding zero-bits */
-#define BITSTOBYTES(x)		(((x + 7) / 8))
-
 
 int mkdirp(const char* path)
 {
@@ -228,7 +223,7 @@ int kfile_update(kfile_write_fd_t fd, const void *buf, size_t nbyte)
 	return total;
 }
 
-ssize_t _fill_io_buf(kfile_t* kf, size_t nbyte)
+static ssize_t _fill_io_buf(kfile_t* kf, size_t nbyte)
 {
 	ssize_t nread = 0;
 	ssize_t total = 0;
@@ -295,7 +290,7 @@ void kfile_write_digests_and_close(kfile_write_fd_t fd)
 	kf = file_get_userdata(fd);
 	if (!kf)
 		die("KFILE file_get_userdata()");
-#if 1
+
 	k_hash_final(kf->hash_plaintext, kf->datadigest);
 
 	if (kfile_update(kf->fd, kf->datadigest, kf->digestbytes) < 0)
@@ -305,28 +300,16 @@ void kfile_write_digests_and_close(kfile_write_fd_t fd)
 
 	if (xwrite(kf->fd, kf->cipherdigest, kf->digestbytes))
 		pdie("KFILE unable to write checksum");
-#endif
-#if 1
+
 	if (lseek(kf->fd, 10, SEEK_SET) < 0)
 		pdie("KFILE unable to set file pointer");
 	if (xwrite(kf->fd, &kf->ciphersize, sizeof(kf->ciphersize)))
 		pdie("KFILE unable to write filesize");
-#endif
+
 	kfile_close(fd);
 }
 
-static int _kfile_determine_version(kfile_t* kf)
-{
-	int ver;
-
-	for(ver = 0; ver < KFILE_VERSION_MAX; ver++) {
-//		if (!strcmp(kf->header.version, kfile_version_strings[ver]))
-//			return ver;
-	}
-
-	return -1;
-}
-
+#if 0
 static int _check_cipherdigest(kfile_t* kf)
 {
 	ssize_t nread;
@@ -365,6 +348,7 @@ static int _check_cipherdigest(kfile_t* kf)
 
 	return 0;
 }
+#endif
 #if 0
 static int _kfile_read_and_check_file_header(kfile_t* kf, kfile_open_opts_t* opts)
 {

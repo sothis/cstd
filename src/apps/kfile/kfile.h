@@ -9,47 +9,12 @@
 #include <dirent.h>
 #include <string.h>
 
-#define KFILE_MAX_NAME_LENGTH	(256ull) /* 255 byte + 1 zero byte */
-#define KFILE_MAX_DIGEST_LENGTH	(128ull) /* 1024 bit */
-#define KFILE_MAX_IV_LENGTH	(128ull) /* 1024 bit */
-
-#define KFILE_MAX_RES_NAME_LENGTH	(256ull) /* 255 byte + 1 zero byte */
-#define KFILE_MAX_PASSWORD_LENGTH	(256ull) /* 2048 bit */
 
 #include "kfile_version.h"
 #include "kfile_ondisk.h"
 #include "kfile_kdf.h"
 #include "kfile_create.h"
 #include "kfile_open.h"
-
-typedef struct kfile_header_t {
-	/* Magic and version are stored including the terminating zero byte
-	 * on disk. */
-	char		magic[6];
-	char		version[4];
-	uint64_t	uuid;
-	uint64_t	filesize;
-
-	uint16_t	kdf_iterations;
-	uint16_t	hashfunction;
-
-	uint16_t	hashsize;
-	uint16_t	cipher;
-
-	uint16_t	ciphermode;
-	uint16_t	keysize;
-
-	uint8_t		kdf_salt[KFILE_MAX_IV_LENGTH];
-	uint8_t		iv[KFILE_MAX_IV_LENGTH];
-} __attribute__((packed)) kfile_header_t;
-/* encrypted:
- * <headerdigest[(hashsize + 7 / 8)]>
- * <uint8_t resourcename_len><resourcename[resourcename_len]> // no zero byte termination
- * <filedata>
- * <datadigest[(hashsize + 7 / 8)]>
- * unencrypted:
- * <cipherdigest[(hashsize + 7 / 8)]>
-*/
 
 typedef struct kfile_t {
 	int		fd;
@@ -63,6 +28,7 @@ typedef struct kfile_t {
 	kfile_version_t	version;
 	size_t		filesize;
 	uint64_t	ciphersize;
+	uint64_t	cipherstart;
 	size_t		noncebytes;
 	size_t		digestbytes;
 	char*		path;
@@ -75,7 +41,6 @@ typedef struct kfile_t {
 	unsigned char*	headerdigest;
 	unsigned char*	datadigest;
 	unsigned char*	cipherdigest;
-	//kfile_header_t	header;
 
 	kfile_preamble_t		preamble;
 	kfile_dynamic_data_header_t	dyndata;
