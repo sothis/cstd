@@ -1,10 +1,9 @@
 #ifndef _KFILE_CREATE_H_
 #define _KFILE_CREATE_H_
 
-#define KFILE_MAX_RES_NAME_LENGTH	(256ull) /* 255 byte + 1 zero byte */
-#define KFILE_MAX_PASSWORD_LENGTH	(256ull) /* 2048 bit */
+typedef int kfile_write_fd_t;
 
-typedef struct kfile_create_opts2_t {
+typedef struct kfile_create_opts_t {
 	uint64_t	uuid;
 	mode_t		file_mode;
 	kfile_version_t	version;
@@ -32,7 +31,8 @@ typedef struct kfile_create_opts2_t {
 	char		resource_name[KFILE_MAX_RES_NAME_LENGTH];
 	/* padded with zero bytes */
 	char		low_entropy_pass[KFILE_MAX_PASSWORD_LENGTH];
-} kfile_create_opts2_t;
+} kfile_create_opts_t;
 
+kfile_write_fd_t kfile_create(kfile_create_opts_t* opts);
 
 #endif /* _KFILE_CREATE_H_ */

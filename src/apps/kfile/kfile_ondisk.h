@@ -2,8 +2,8 @@
 #define _KFILE_ONDISK_H_
 
 /* NOTE: All uint8_t sizes in the on-disk structures are encoded as such:
- *		real_size = sz_bytes + 1
- * 	This implies that a size of 0 is not allowed and the max size
+ *		(uint_least16_t)real_size = sz_bytes + 1
+ * 	This implies that a real_size of 0 is not allowed and the max real_size
  * 	that can be encoded is 256.
  *	Be aware that the resource name length is also encoded in this way
  * 	but it is still limited to 255 bytes at max to ensure that it

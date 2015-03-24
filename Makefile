@@ -138,6 +138,8 @@ SRC		+= ./src/socket/sio.c
 SRC_TEST	+= ./src/apps/test.c
 SRC_TEST	+= ./src/apps/kfile/kfile.c
 SRC_TEST	+= ./src/apps/kfile/create.c
+SRC_TEST	+= ./src/apps/kfile/open.c
+SRC_TEST	+= ./src/apps/kfile/version.c
 
 SRC_CLIENT	+= ./src/apps/client.c
 SRC_CLIENT	+= ./sdtl/src/sdtl.c
@@ -147,6 +149,7 @@ SRC_CLIENT	+= ./src/apps/restrans_client.c
 SRC_SERVER	+= ./src/apps/server.c
 SRC_SERVER	+= ./sdtl/src/sdtl.c
 SRC_SERVER	+= ./src/apps/kfile/kfile.c
+SRC_SERVER	+= ./src/apps/kfile/create.c
 SRC_SERVER	+= ./src/apps/restrans_srv.c
 
 ################################################################################
@@ -178,7 +181,7 @@ DEFINES		+= -D__LIBRARY_BUILD=1
 
 # toolchain configuration
 # common flags
-CFLAGS		:= -Wall
+CFLAGS		:= -Wall -g
 
 ifeq ($(TOOLCHAIN), gcc)
 ifeq ($(GCC_MAJOR), 4)
@@ -196,7 +199,7 @@ CFLAGS		+= -m32
 endif
 
 ifdef DEBUG
-CFLAGS		+= -O0 -g
+CFLAGS		+= -O0
 endif
 
 ifdef RELEASE

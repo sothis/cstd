@@ -13,14 +13,13 @@
 #define KFILE_MAX_DIGEST_LENGTH	(128ull) /* 1024 bit */
 #define KFILE_MAX_IV_LENGTH	(128ull) /* 1024 bit */
 
-typedef enum kfile_version_t {
-	KFILE_VERSION_0_1	= 0,
-	KFILE_VERSION_1_0	= 1,
-	KFILE_VERSION_MAX
-} kfile_version_t;
+#define KFILE_MAX_RES_NAME_LENGTH	(256ull) /* 255 byte + 1 zero byte */
+#define KFILE_MAX_PASSWORD_LENGTH	(256ull) /* 2048 bit */
 
+#include "kfile_version.h"
 #include "kfile_ondisk.h"
 #include "kfile_create.h"
+#include "kfile_open.h"
 
 typedef struct kfile_header_t {
 	/* Magic and version are stored including the terminating zero byte
@@ -83,43 +82,6 @@ typedef struct kfile_t {
 
 } kfile_t;
 
-typedef struct kfile_create_opts_t {
-	uint64_t	uuid;
-	mode_t		filemode;
-	kfile_version_t	version;
-	uint16_t	hashfunction;
-	/* Hashsize in bits.
-	 * Might be 0 in order to use the default state size of the
-	 * specified hash function. */
-	uint16_t	hashsize;
-	/* mustn't be zero, kfiles are always encrypted */
-	uint16_t	cipher;
-	/* If the used cipher is a plain streamcipher, set ciphermode to 0.
-	 * Otherwise only blockcipher modes are supported, that turn the
-	 * specified blockcipher into a streamcipher (e.g. OFB, CTR or GCM) */
-	uint16_t	ciphermode;
-	/* keysize in bits */
-	uint16_t	keysize;
-	/* mustn't be zero */
-	uint16_t	kdf_iterations;
-	/* mustn't be zero */
-	size_t		iobuf_size;
-	/* padded with zero bytes */
-	char		resourcename[KFILE_MAX_NAME_LENGTH];
-	/* padded with zero bytes */
-	char		low_entropy_pass[KFILE_MAX_NAME_LENGTH];
-} kfile_create_opts_t;
-
-typedef struct kfile_open_opts_t {
-	uint64_t	uuid;
-	size_t		iobuf_size;
-	/* check cipher digest with kfile_open().
-	 * might take a long time with very large encrypted resources. */
-	uint32_t	check_cipherdigest;
-	char		low_entropy_pass[KFILE_MAX_NAME_LENGTH];
-} kfile_open_opts_t;
-
-
 static inline void assign_uint8_size(uint8_t* dest, uint16_t val)
 {
 	*dest = (uint8_t)(val - 1);
@@ -177,13 +139,10 @@ static inline uint64_t unpack_uint64(unsigned char* in)
 	return r;
 }
 
-typedef int kfile_write_fd_t;
 typedef int kfile_read_fd_t;
 typedef int kfile_fd_t;
 
-kfile_write_fd_t kfile_create(kfile_create_opts_t* opts);
-kfile_write_fd_t kfile_create2(kfile_create_opts2_t* opts);
-kfile_read_fd_t kfile_open(kfile_open_opts_t* opts);
+void xuuid_to_path(uint64_t uuid, char** compl, char** fpath, char** fname);
 
 int kfile_update(kfile_write_fd_t fd, const void* buf, size_t nbyte);
 void kfile_write_digests_and_close(kfile_write_fd_t fd);

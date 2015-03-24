@@ -186,16 +186,18 @@ int _on_sdtl_event(void* userdata, sdtl_event_t e, sdtl_data_t* data)
 			}
 			if (!strcmp((char*)data->data, "resource-stream")) {
 				kfcopts.uuid = uuid;
-				kfcopts.filemode = 0400;
+
+				kfcopts.file_mode = 0400;
 				kfcopts.version = KFILE_VERSION_0_1;
-				kfcopts.hashfunction = HASHSUM_SKEIN_512;
-				kfcopts.hashsize = 512;
-				kfcopts.cipher = BLK_CIPHER_AES;
-				kfcopts.ciphermode = BLK_CIPHER_MODE_CTR;
-				kfcopts.keysize = 256;
-				kfcopts.kdf_iterations = 2003;
+				kfcopts.hash_function = HASHSUM_SKEIN_512;
+				kfcopts.digest_bytes = 64;
+				kfcopts.cipher_function = BLK_CIPHER_AES;
+				kfcopts.cipher_mode = BLK_CIPHER_MODE_CTR;
+				kfcopts.key_bytes = 32;
+				kfcopts.kdf_function = KDF_SKEIN_1024;
+				kfcopts.kdf_complexity = 23;
 				kfcopts.iobuf_size = 65536;
-				strcpy(kfcopts.resourcename, resname);
+				strcpy(kfcopts.resource_name, resname);
 				strcpy(kfcopts.low_entropy_pass, "test1234");
 
 				wfd = kfile_create(&kfcopts);

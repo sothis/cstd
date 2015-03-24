@@ -85,7 +85,7 @@ out:
 	return r;
 }
 
-static void xuuid_to_path(uint64_t uuid, char** compl, char** fpath, char** fname)
+void xuuid_to_path(uint64_t uuid, char** compl, char** fpath, char** fname)
 {
 	int i, j;
 	char uuid_ascii[20];
@@ -133,7 +133,7 @@ static void xuuid_to_path(uint64_t uuid, char** compl, char** fpath, char** fnam
 }
 
 static int _kfile_init_algorithms_with_opts
-(kfile_t* kf, kfile_create_opts2_t* opts)
+(kfile_t* kf, kfile_create_opts_t* opts)
 {
 	unsigned char zero_nonce[256];
 	memset(zero_nonce, 0, 256);
@@ -206,7 +206,7 @@ static int _kfile_init_algorithms_with_opts
 	return 0;
 }
 
-static inline int check_create_opts(kfile_create_opts2_t* opts)
+static inline int check_create_opts(kfile_create_opts_t* opts)
 {
 	size_t len = 0;
 
@@ -309,7 +309,7 @@ static void _kfile_calculate_header_digest(kfile_t* kf)
 	k_hash_update(kf->hash_ciphertext, kf->iv_header.iv, kf->iv_header.iv_bytes+1);
 }
 
-kfile_write_fd_t kfile_create2(kfile_create_opts2_t* opts)
+kfile_write_fd_t kfile_create(kfile_create_opts_t* opts)
 {
 	kfile_t* kf = 0;
 

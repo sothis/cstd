@@ -29,7 +29,7 @@ int cstd_main(int argc, char* argv[], char* envp[])
 #if 1
 	unsigned char sdata[4096];
 	kfile_write_fd_t wfd;
-	kfile_create_opts2_t kfcopts = {
+	kfile_create_opts_t kfcopts = {
 		.uuid			= 18446744073709551615ul,
 		.file_mode		= 0400,
 		.version		= KFILE_VERSION_0_1,
@@ -47,7 +47,7 @@ int cstd_main(int argc, char* argv[], char* envp[])
 
 	memset(sdata, 'z', 4096);
 	sdata[4095] = 0;
-	wfd = kfile_create2(&kfcopts);
+	wfd = kfile_create(&kfcopts);
 	if (wfd < 0)
 		pdie("kfile_create()");
 	kfile_update(wfd, sdata, sizeof(sdata));
