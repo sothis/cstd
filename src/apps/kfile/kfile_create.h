@@ -1,6 +1,12 @@
 #ifndef _KFILE_CREATE_H_
 #define _KFILE_CREATE_H_
 
+#include "kfile_common.h"
+#include "kfile_version.h"
+#include <stdint.h>
+#include <stddef.h>
+#include <sys/types.h>
+
 typedef int kfile_write_fd_t;
 
 typedef struct kfile_create_opts_t {

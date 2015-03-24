@@ -1,6 +1,10 @@
 #ifndef _KFILE_OPEN_H_
 #define _KFILE_OPEN_H_
 
+#include "kfile_common.h"
+#include <stdint.h>
+#include <stddef.h>
+
 typedef int kfile_read_fd_t;
 
 typedef struct kfile_open_opts_t {

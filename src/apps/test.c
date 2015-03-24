@@ -54,7 +54,7 @@ int cstd_main(int argc, char* argv[], char* envp[])
 	kfile_write_digests_and_close(wfd);
 #endif
 
-#if 0
+#if 1
 	//unsigned char rdata[2048];
 	kfile_read_fd_t rfd;
 	kfile_open_opts_t kfoopts = {

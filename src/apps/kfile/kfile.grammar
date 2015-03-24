@@ -8,8 +8,10 @@
                         <fixedvalue name="magic" value="KFILE"/>
                     </fixedvalues>
                 </string>
-                <string name="version" id="5" fillcolor="FFFF00" type="zero-terminated"/>
-                <number name="cipher_data_bytes" id="6" fillcolor="5500FF" type="integer" length="8"/>
+                <string name="version" id="5" fillcolor="D8FFAE" type="zero-terminated"/>
+            </structure>
+            <structure name="kfile_dynamic_data_header_t" id="32">
+                <number name="cipher_data_bytes" id="34" fillcolor="55FFFF" type="integer" length="8"/>
             </structure>
             <structure name="kfile_control_header_t" id="8" fillcolor="AAFFFF">
                 <number name="hash_function" id="9" fillcolor="AA0000" type="integer" length="1"/>

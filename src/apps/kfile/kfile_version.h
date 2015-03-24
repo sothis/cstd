@@ -1,7 +1,6 @@
 #ifndef _KFILE_VERSION_H_
 #define _KFILE_VERSION_H_
 
-#define KFILE_MAGIC		("KFILE")
 #define KFILE_VERSION_LENGTH	(4)
 
 typedef enum kfile_version_t {
@@ -10,6 +9,7 @@ typedef enum kfile_version_t {
 	KFILE_VERSION_MAX
 } kfile_version_t;
 
+const char* kfile_version_string(kfile_version_t version);
 int kfile_determine_version(const char* version_string);
 
 

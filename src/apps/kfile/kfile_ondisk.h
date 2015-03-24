@@ -15,8 +15,11 @@ typedef struct kfile_preamble_t {
 	 * on disk. */
 	char		magic[6];
 	char		version[4];
-	uint64_t	cipher_data_bytes;
 } __attribute__((packed)) kfile_preamble_t;
+
+typedef struct kfile_dynamic_data_header_t {
+	uint64_t	cipher_data_bytes;
+} __attribute__((packed)) kfile_dynamic_data_header_t;
 
 typedef struct kfile_control_header_t {
 	uint8_t		hash_function;
@@ -41,6 +44,7 @@ typedef struct kfile_iv_header_t {
 /*	current layout (wip):
  *
  *	kfile_preamble_t
+ *	kfile_dynamic_data_header_t
  *	kfile_control_header_t
  * 	kfile_kdf_header_t
  * 	kfile_iv_header_t

@@ -18,6 +18,7 @@
 
 #include "kfile_version.h"
 #include "kfile_ondisk.h"
+#include "kfile_kdf.h"
 #include "kfile_create.h"
 #include "kfile_open.h"
 
@@ -59,6 +60,7 @@ typedef struct kfile_t {
 	k_sc_t*		scipher;
 	k_prng_t*	prng;
 
+	kfile_version_t	version;
 	size_t		filesize;
 	uint64_t	ciphersize;
 	size_t		noncebytes;
@@ -68,17 +70,18 @@ typedef struct kfile_t {
 	size_t		iobuf_size;
 	unsigned char*	iobuf;
 	unsigned char*	key;
-	char		resourcename[KFILE_MAX_NAME_LENGTH];
+	char		resourcename[KFILE_MAX_RES_NAME_LENGTH];
 	unsigned char	resourcename_len;
 	unsigned char*	headerdigest;
 	unsigned char*	datadigest;
 	unsigned char*	cipherdigest;
-	kfile_header_t	header;
+	//kfile_header_t	header;
 
-	kfile_preamble_t	preamble;
-	kfile_control_header_t	control;
-	kfile_kdf_header_t	kdf_header;
-	kfile_iv_header_t	iv_header;
+	kfile_preamble_t		preamble;
+	kfile_dynamic_data_header_t	dyndata;
+	kfile_control_header_t		control;
+	kfile_kdf_header_t		kdf_header;
+	kfile_iv_header_t		iv_header;
 
 } kfile_t;
 
@@ -139,7 +142,6 @@ static inline uint64_t unpack_uint64(unsigned char* in)
 	return r;
 }
 
-typedef int kfile_read_fd_t;
 typedef int kfile_fd_t;
 
 void xuuid_to_path(uint64_t uuid, char** compl, char** fpath, char** fname);
