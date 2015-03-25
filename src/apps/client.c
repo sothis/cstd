@@ -132,7 +132,7 @@ int cstd_main(int argc, char* argv[], char* envp[])
 		exit(~0);
 	}
 
-#if 0
+#if 1
 	if (restrans_op_add_resource(fd ,31337, "deine mudder", file_fd) < 0)
 	{
 		printf("restrans_op_add_resource failed.\n");

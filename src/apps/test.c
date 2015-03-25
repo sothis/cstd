@@ -26,7 +26,7 @@ int cstd_main(int argc, char* argv[], char* envp[])
 #endif
 #if 1
 
-#if 0
+#if 1
 	unsigned char sdata[4096];
 	kfile_write_fd_t wfd;
 	kfile_create_opts_t kfcopts = {
@@ -69,7 +69,7 @@ int cstd_main(int argc, char* argv[], char* envp[])
 		pdie("kfile_open()");
 	kfile_read(rfd, rdata, 4096);
 	printf("resource: '%s'\n" , kfile_get_resource_name(rfd));
-	printf("content: '%s'\n", rdata);
+	//printf("content: '%s'\n", rdata);
 	kfile_close(rfd);
 #endif
 //	printf("s: '%lu'\n", sizeof(kfile_kdf_header_t));
