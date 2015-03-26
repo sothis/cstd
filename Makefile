@@ -137,9 +137,12 @@ SRC		+= ./src/socket/sio.c
 
 SRC_TEST	+= ./src/apps/test.c
 SRC_TEST	+= ./src/apps/kfile/kfile.c
+SRC_TEST	+= ./src/apps/kfile/io_common.c
 SRC_TEST	+= ./src/apps/kfile/kdf_complexity.c
 SRC_TEST	+= ./src/apps/kfile/create.c
 SRC_TEST	+= ./src/apps/kfile/open.c
+SRC_TEST	+= ./src/apps/kfile/update.c
+SRC_TEST	+= ./src/apps/kfile/read.c
 SRC_TEST	+= ./src/apps/kfile/version.c
 
 SRC_CLIENT	+= ./src/apps/client.c
@@ -150,9 +153,12 @@ SRC_CLIENT	+= ./src/apps/restrans_client.c
 SRC_SERVER	+= ./src/apps/server.c
 SRC_SERVER	+= ./sdtl/src/sdtl.c
 SRC_SERVER	+= ./src/apps/kfile/kfile.c
+SRC_SERVER	+= ./src/apps/kfile/io_common.c
 SRC_SERVER	+= ./src/apps/kfile/kdf_complexity.c
 SRC_SERVER	+= ./src/apps/kfile/create.c
 SRC_SERVER	+= ./src/apps/kfile/open.c
+SRC_SERVER	+= ./src/apps/kfile/update.c
+SRC_SERVER	+= ./src/apps/kfile/read.c
 SRC_SERVER	+= ./src/apps/kfile/version.c
 
 

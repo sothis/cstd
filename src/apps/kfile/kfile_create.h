@@ -7,7 +7,6 @@
 #include <stddef.h>
 #include <sys/types.h>
 
-typedef int kfile_write_fd_t;
 
 typedef struct kfile_create_opts_t {
 	uint64_t	uuid;

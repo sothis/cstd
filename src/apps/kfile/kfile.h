@@ -9,12 +9,16 @@
 #include <dirent.h>
 #include <string.h>
 
-
 #include "kfile_version.h"
+#include "kfile_common.h"
 #include "kfile_ondisk.h"
+#include "kfile_io_common.h"
 #include "kfile_kdf.h"
 #include "kfile_create.h"
 #include "kfile_open.h"
+#include "kfile_read.h"
+#include "kfile_update.h"
+
 
 typedef struct kfile_t {
 	int		fd;
@@ -107,15 +111,13 @@ static inline uint64_t unpack_uint64(unsigned char* in)
 	return r;
 }
 
-typedef int kfile_fd_t;
+
 
 void xuuid_to_path(uint64_t uuid, char** compl, char** fpath, char** fname);
 
-int kfile_update(kfile_write_fd_t fd, const void* buf, size_t nbyte);
-void kfile_write_digests_and_close(kfile_write_fd_t fd);
 
+void kfile_write_digests_and_close(kfile_write_fd_t fd);
 const char* kfile_get_resource_name(kfile_read_fd_t fd);
-ssize_t kfile_read(kfile_read_fd_t fd, void* buf, size_t nbyte);
 
 int kfile_close(kfile_fd_t fd);
 

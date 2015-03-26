@@ -247,29 +247,6 @@ static inline int check_create_opts(kfile_create_opts_t* opts)
 	return 0;
 }
 
-static void _kfile_calculate_header_digest(kfile_t* kf)
-{
-	k_hash_update(kf->hash_plaintext, &kf->control, sizeof(kfile_control_header_t));
-
-	k_hash_update(kf->hash_plaintext, &kf->kdf_header.kdf_salt_bytes, 1);
-	k_hash_update(kf->hash_plaintext, kf->kdf_header.kdf_salt, kf->kdf_header.kdf_salt_bytes+1);
-
-	k_hash_update(kf->hash_plaintext, &kf->iv_header.iv_bytes, 1);
-	k_hash_update(kf->hash_plaintext, kf->iv_header.iv, kf->iv_header.iv_bytes+1);
-
-	k_hash_final(kf->hash_plaintext, kf->headerdigest);
-	k_hash_reset(kf->hash_plaintext);
-
-
-	k_hash_update(kf->hash_ciphertext, &kf->control, sizeof(kfile_control_header_t));
-
-	k_hash_update(kf->hash_ciphertext, &kf->kdf_header.kdf_salt_bytes, 1);
-	k_hash_update(kf->hash_ciphertext, kf->kdf_header.kdf_salt, kf->kdf_header.kdf_salt_bytes+1);
-
-	k_hash_update(kf->hash_ciphertext, &kf->iv_header.iv_bytes, 1);
-	k_hash_update(kf->hash_ciphertext, kf->iv_header.iv, kf->iv_header.iv_bytes+1);
-}
-
 kfile_write_fd_t kfile_create(kfile_create_opts_t* opts)
 {
 	kfile_t* kf = 0;
@@ -333,7 +310,7 @@ kfile_write_fd_t kfile_create(kfile_create_opts_t* opts)
 	if (xwrite(kf->fd, kf->iv_header.iv, kf->iv_header.iv_bytes+1))
 		pdie("KFILE can't write file header");
 
-	_kfile_calculate_header_digest(kf);
+	_kf_calculate_header_digest(kf);
 
 	if (kfile_update(kf->fd, kf->headerdigest, kf->digestbytes) < 0)
 		pdie("KFILE kfile_update(kf->headerdigest)");

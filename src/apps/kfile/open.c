@@ -9,53 +9,6 @@
 #include <unistd.h>
 #include <fcntl.h>
 
-
-/* TODO: this is redundant, see kfile create.c */
-static void _kfile_calculate_header_digest(kfile_t* kf)
-{
-	k_hash_update(kf->hash_plaintext, &kf->control, sizeof(kfile_control_header_t));
-
-	k_hash_update(kf->hash_plaintext, &kf->kdf_header.kdf_salt_bytes, 1);
-	k_hash_update(kf->hash_plaintext, kf->kdf_header.kdf_salt, kf->kdf_header.kdf_salt_bytes+1);
-
-	k_hash_update(kf->hash_plaintext, &kf->iv_header.iv_bytes, 1);
-	k_hash_update(kf->hash_plaintext, kf->iv_header.iv, kf->iv_header.iv_bytes+1);
-
-	k_hash_final(kf->hash_plaintext, kf->headerdigest);
-	k_hash_reset(kf->hash_plaintext);
-
-
-	k_hash_update(kf->hash_ciphertext, &kf->control, sizeof(kfile_control_header_t));
-
-	k_hash_update(kf->hash_ciphertext, &kf->kdf_header.kdf_salt_bytes, 1);
-	k_hash_update(kf->hash_ciphertext, kf->kdf_header.kdf_salt, kf->kdf_header.kdf_salt_bytes+1);
-
-	k_hash_update(kf->hash_ciphertext, &kf->iv_header.iv_bytes, 1);
-	k_hash_update(kf->hash_ciphertext, kf->iv_header.iv, kf->iv_header.iv_bytes+1);
-}
-
-/* NOTE: also needed in kfile_read() */
-static ssize_t _fill_io_buf(kfile_t* kf, size_t nbyte)
-{
-	ssize_t nread = 0;
-	ssize_t total = 0;
-
-	while (total != nbyte) {
-		nread = read(kf->fd, kf->iobuf + total, nbyte - total);
-		if (nread < 0) {
-			if (errno == EINTR)
-				continue;
-			else return nread;
-		}
-		if (nread == 0) {
-			/* shall not happen */
-			return -1;
-		}
-		total += nread;
-	}
-	return total;
-}
-
 static int _check_cipherdigest(kfile_t* kf)
 {
 	ssize_t nread;
@@ -65,13 +18,13 @@ static int _check_cipherdigest(kfile_t* kf)
 	size_t remaining = kf->dyndata.cipher_data_bytes % kf->iobuf_size;
 
 	for (size_t i = 0; i < blocks; ++i) {
-		nread = _fill_io_buf(kf, kf->iobuf_size);
+		nread = _kf_fill_io_buf(kf->fd, kf->iobuf, kf->iobuf_size);
 		if (nread <= 0)
 			return -1;
 		k_hash_update(kf->hash_ciphertext, kf->iobuf, nread);
 	}
 	if (remaining) {
-		nread = _fill_io_buf(kf, remaining);
+		nread = _kf_fill_io_buf(kf->fd, kf->iobuf, remaining);
 		if (nread <= 0)
 			return -1;
 		k_hash_update(kf->hash_ciphertext, kf->iobuf, nread);
@@ -258,7 +211,7 @@ static int _kfile_read_and_check_file_header(kfile_t* kf, kfile_open_opts_t* opt
 	}
 #endif
 
-	_kfile_calculate_header_digest(kf);
+	_kf_calculate_header_digest(kf);
 
 	if (opts->check_cipherdigest) {
 		if (_check_cipherdigest(kf)) {
