@@ -5,7 +5,6 @@
 #include <stdint.h>
 #include <stddef.h>
 
-typedef int kfile_read_fd_t;
 
 typedef struct kfile_open_opts_t {
 	uint64_t	uuid;
