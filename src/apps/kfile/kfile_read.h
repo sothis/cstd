@@ -2,7 +2,6 @@
 #define _KFILE_READ_H_
 
 #include "kfile_common.h"
-#include <stdint.h>
 #include <stddef.h>
 #include <sys/types.h>
 

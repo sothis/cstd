@@ -2,8 +2,7 @@
 #define _KFILE_UPDATE_H_
 
 #include "kfile_common.h"
-#include <stdint.h>
-#include <stddef.h>
+
 
 int kfile_update(kfile_write_fd_t fd, const void* buf, size_t nbyte);
 

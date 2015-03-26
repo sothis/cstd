@@ -143,6 +143,7 @@ SRC_TEST	+= ./src/apps/kfile/kfile_create.c
 SRC_TEST	+= ./src/apps/kfile/kfile_open.c
 SRC_TEST	+= ./src/apps/kfile/kfile_update.c
 SRC_TEST	+= ./src/apps/kfile/kfile_read.c
+SRC_TEST	+= ./src/apps/kfile/kfile_close.c
 SRC_TEST	+= ./src/apps/kfile/kfile_version.c
 
 SRC_CLIENT	+= ./src/apps/client.c
@@ -159,6 +160,7 @@ SRC_SERVER	+= ./src/apps/kfile/kfile_create.c
 SRC_SERVER	+= ./src/apps/kfile/kfile_open.c
 SRC_SERVER	+= ./src/apps/kfile/kfile_update.c
 SRC_SERVER	+= ./src/apps/kfile/kfile_read.c
+SRC_SERVER	+= ./src/apps/kfile/kfile_close.c
 SRC_SERVER	+= ./src/apps/kfile/kfile_version.c
 
 

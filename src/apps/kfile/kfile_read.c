@@ -1,4 +1,5 @@
 #include "kfile.h"
+#include <string.h>
 
 static inline void _decrypt_io_buf(kfile_t* kf, size_t nbyte)
 {

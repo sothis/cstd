@@ -1,4 +1,6 @@
 #include "kfile.h"
+#include <string.h>
+#include <unistd.h>
 
 void _encrypt_io_buf(kfile_t* kf, size_t nbyte)
 {
