@@ -53,23 +53,6 @@ typedef struct kfile_t {
 
 } kfile_t;
 
-static inline void assign_uint8_size(uint8_t* dest, uint16_t val)
-{
-	*dest = (uint8_t)(val - 1);
-}
-
-static inline int check_uint8_size(uint16_t val)
-{
-	if (!val)
-		return -1;
-
-	if (val > 256)
-		return -1;
-
-	return 0;
-}
-
-
 void xuuid_to_path(uint64_t uuid, char** compl, char** fpath, char** fname);
 const char* kfile_get_resource_name(kfile_read_fd_t fd);
 
