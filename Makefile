@@ -110,7 +110,7 @@ INCLUDES	+= -I./src
 INCLUDES	+= -I./src/mp
 INCLUDES	+= -I./src/socket
 INCLUDES	+= -I./src/apps
-INCLUDES	+= -I./src/apps/kfile
+INCLUDES	+= -I./src/kfile
 
 SRC		+= ./src/version.c
 .PHONY: ./src/version.c
@@ -136,15 +136,15 @@ SRC		+= ./src/socket/sio.c
 
 
 SRC_TEST	+= ./src/apps/test.c
-SRC_TEST	+= ./src/apps/kfile/kfile.c
-SRC_TEST	+= ./src/apps/kfile/kfile_io_common.c
-SRC_TEST	+= ./src/apps/kfile/kfile_kdf_complexity.c
-SRC_TEST	+= ./src/apps/kfile/kfile_create.c
-SRC_TEST	+= ./src/apps/kfile/kfile_open.c
-SRC_TEST	+= ./src/apps/kfile/kfile_update.c
-SRC_TEST	+= ./src/apps/kfile/kfile_read.c
-SRC_TEST	+= ./src/apps/kfile/kfile_close.c
-SRC_TEST	+= ./src/apps/kfile/kfile_version.c
+SRC_TEST	+= ./src/kfile/kfile.c
+SRC_TEST	+= ./src/kfile/kfile_io_common.c
+SRC_TEST	+= ./src/kfile/kfile_kdf_complexity.c
+SRC_TEST	+= ./src/kfile/kfile_create.c
+SRC_TEST	+= ./src/kfile/kfile_open.c
+SRC_TEST	+= ./src/kfile/kfile_update.c
+SRC_TEST	+= ./src/kfile/kfile_read.c
+SRC_TEST	+= ./src/kfile/kfile_close.c
+SRC_TEST	+= ./src/kfile/kfile_version.c
 
 SRC_CLIENT	+= ./src/apps/client.c
 SRC_CLIENT	+= ./sdtl/src/sdtl.c
@@ -153,15 +153,15 @@ SRC_CLIENT	+= ./src/apps/restrans_client.c
 
 SRC_SERVER	+= ./src/apps/server.c
 SRC_SERVER	+= ./sdtl/src/sdtl.c
-SRC_SERVER	+= ./src/apps/kfile/kfile.c
-SRC_SERVER	+= ./src/apps/kfile/kfile_io_common.c
-SRC_SERVER	+= ./src/apps/kfile/kfile_kdf_complexity.c
-SRC_SERVER	+= ./src/apps/kfile/kfile_create.c
-SRC_SERVER	+= ./src/apps/kfile/kfile_open.c
-SRC_SERVER	+= ./src/apps/kfile/kfile_update.c
-SRC_SERVER	+= ./src/apps/kfile/kfile_read.c
-SRC_SERVER	+= ./src/apps/kfile/kfile_close.c
-SRC_SERVER	+= ./src/apps/kfile/kfile_version.c
+SRC_SERVER	+= ./src/kfile/kfile.c
+SRC_SERVER	+= ./src/kfile/kfile_io_common.c
+SRC_SERVER	+= ./src/kfile/kfile_kdf_complexity.c
+SRC_SERVER	+= ./src/kfile/kfile_create.c
+SRC_SERVER	+= ./src/kfile/kfile_open.c
+SRC_SERVER	+= ./src/kfile/kfile_update.c
+SRC_SERVER	+= ./src/kfile/kfile_read.c
+SRC_SERVER	+= ./src/kfile/kfile_close.c
+SRC_SERVER	+= ./src/kfile/kfile_version.c
 
 
 SRC_SERVER	+= ./src/apps/restrans_srv.c
