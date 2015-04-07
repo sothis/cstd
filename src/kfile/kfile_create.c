@@ -178,6 +178,8 @@ static int _kfile_init_algorithms_with_opts
 	return 0;
 }
 
+/* TODO: do utf8 validity check on opts->low_entropy_pass and
+ * opts->resource_name */
 static inline int check_create_opts(kfile_create_opts_t* opts)
 {
 	size_t len = 0;

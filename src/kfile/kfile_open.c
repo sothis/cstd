@@ -256,6 +256,7 @@ static int _kfile_read_and_check_file_header(kfile_t* kf, kfile_open_opts_t* opt
 	return 0;
 }
 
+/* TODO: do utf8 validity check on opts->low_entropy_pass */
 kfile_read_fd_t kfile_open(kfile_open_opts_t* opts)
 {
 	struct stat st;
