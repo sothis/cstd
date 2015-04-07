@@ -189,9 +189,8 @@ int file_sync_and_close(int fd)
 
 	file = _file_get_by_fd(fd);
 	if (!file) {
-		/* fd was not created by our API */
-		err("specified filedescriptor unknown");
-		return -1;
+		close(fd);
+		return 0;
 	}
 
 	if (file->tmp_name) {
