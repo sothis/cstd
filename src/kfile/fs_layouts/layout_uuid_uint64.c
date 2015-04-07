@@ -10,7 +10,7 @@
 #include <inttypes.h>
 #include <fcntl.h>
 
-static int mkdirp(const char* path)
+static int mkdir_recursive(const char* path)
 {
 	char* p, *tok;
 	int e, r = 0;
@@ -45,20 +45,25 @@ out:
 	return r;
 }
 
-static void xuuid_to_path
-(uint64_t uuid, char** compl, char** fpath, char** fname)
+/*
+	uuid max:  18446744073709551615		[20]
+	compl max: 1844/6744/0737/0955/1615	[24]
+	fpath max: 1844/6744/0737/0955		[19]
+	fname max: 1615				[4]
+*/
+static void uuid_to_path
+(uint64_t uuid, char* compl/*[25]*/, char* fpath/*[20]*/, char* fname/*[5]*/)
 {
 	int i, j;
-	char uuid_ascii[20];
-	char cpath[40];
+	char uuid_ascii[21];
+	char cpath[25];
 	char path[20];
 	char name[5];
 
-	memset(name, 0, 5);
-	memset(path, 0, 20);
-	memset(cpath, 0, 40);
-	memset(uuid_ascii, 0, 20);
 	snprintf(uuid_ascii, 21, "%020" PRIu64, uuid);
+	memset(cpath, 0, 25);
+	memset(path, 0, 20);
+	memset(name, 0, 5);
 
 	for (j = 0, i = 0; i <= 16; i += 4, j += 5) {
 		if (i < 16) {
@@ -84,11 +89,11 @@ static void xuuid_to_path
 	}
 
 	if (compl)
-		*compl = xstrdup(cpath);
+		strcpy(compl, cpath);
 	if (fpath)
-		*fpath = xstrdup(path);
+		strcpy(fpath, path);
 	if (fname)
-		*fname = xstrdup(name);
+		strcpy(name, fname);
 
 	return;
 }
@@ -96,12 +101,12 @@ static void xuuid_to_path
 int uuid_create_file(uint64_t uuid, mode_t mode)
 {
 	int r = -1;
-	char* path = 0;
-	char* filename = 0;
+	char path[20];
+	char filename[5];
 
-	xuuid_to_path(uuid, 0, &path, &filename);
+	uuid_to_path(uuid, 0, path, filename);
 
-	if (mkdirp(path)) {
+	if (mkdir_recursive(path)) {
 		r = -1;
 		goto out;
 	}
@@ -109,22 +114,18 @@ int uuid_create_file(uint64_t uuid, mode_t mode)
 	r = file_create_rw_with_hidden_tmp(filename, path, mode);
 
 out:
-	if (path)
-		free(path);
-	if (filename)
-		free(filename);
 	return r;
 }
 
 int uuid_open_file_ro(uint64_t uuid)
 {
 	int r = -1;
-	char* path = 0;
-	char* filename = 0;
+	char path[20];
+	char filename[5];
 	DIR* path_ds = 0;
 	int path_fd = -1;
 
-	xuuid_to_path(uuid, 0, &path, &filename);
+	uuid_to_path(uuid, 0, path, filename);
 
 	path_ds = opendir(path);
 	if (!path_ds) {
@@ -144,10 +145,6 @@ int uuid_open_file_ro(uint64_t uuid)
 	}
 
 out:
-	if (path)
-		free(path);
-	if (filename)
-		free(filename);
 	if (path_ds)
 		closedir(path_ds);
 	return r;
