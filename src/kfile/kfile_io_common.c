@@ -30,23 +30,37 @@ void _kf_calculate_header_digest(void* kfile)
 {
 	kfile_t* kf = kfile;
 
-	k_hash_update(kf->hash_plaintext, &kf->control, sizeof(kfile_control_header_t));
+	k_hash_update(kf->hash_plaintext,
+		&kf->control, sizeof(kfile_control_header_t));
 
-	k_hash_update(kf->hash_plaintext, &kf->kdf_header.kdf_salt_bytes, 1);
-	k_hash_update(kf->hash_plaintext, kf->kdf_header.kdf_salt, kf->kdf_header.kdf_salt_bytes+1);
+	k_hash_update(kf->hash_plaintext,
+		&kf->kdf_header.kdf_salt_bytes, 1);
 
-	k_hash_update(kf->hash_plaintext, &kf->iv_header.iv_bytes, 1);
-	k_hash_update(kf->hash_plaintext, kf->iv_header.iv, kf->iv_header.iv_bytes+1);
+	k_hash_update(kf->hash_plaintext,
+		kf->kdf_header.kdf_salt, kf->kdf_header.kdf_salt_bytes+1);
+
+	k_hash_update(kf->hash_plaintext,
+		&kf->iv_header.iv_bytes, 1);
+
+	k_hash_update(kf->hash_plaintext,
+		kf->iv_header.iv, kf->iv_header.iv_bytes+1);
 
 	k_hash_final(kf->hash_plaintext, kf->headerdigest);
 	k_hash_reset(kf->hash_plaintext);
 
 
-	k_hash_update(kf->hash_ciphertext, &kf->control, sizeof(kfile_control_header_t));
+	k_hash_update(kf->hash_ciphertext,
+		&kf->control, sizeof(kfile_control_header_t));
 
-	k_hash_update(kf->hash_ciphertext, &kf->kdf_header.kdf_salt_bytes, 1);
-	k_hash_update(kf->hash_ciphertext, kf->kdf_header.kdf_salt, kf->kdf_header.kdf_salt_bytes+1);
+	k_hash_update(kf->hash_ciphertext,
+		&kf->kdf_header.kdf_salt_bytes, 1);
 
-	k_hash_update(kf->hash_ciphertext, &kf->iv_header.iv_bytes, 1);
-	k_hash_update(kf->hash_ciphertext, kf->iv_header.iv, kf->iv_header.iv_bytes+1);
+	k_hash_update(kf->hash_ciphertext,
+		kf->kdf_header.kdf_salt, kf->kdf_header.kdf_salt_bytes+1);
+
+	k_hash_update(kf->hash_ciphertext,
+		&kf->iv_header.iv_bytes, 1);
+
+	k_hash_update(kf->hash_ciphertext,
+		kf->iv_header.iv, kf->iv_header.iv_bytes+1);
 }
