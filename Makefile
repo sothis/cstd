@@ -145,6 +145,7 @@ SRC_TEST	+= ./src/kfile/kfile_update.c
 SRC_TEST	+= ./src/kfile/kfile_read.c
 SRC_TEST	+= ./src/kfile/kfile_close.c
 SRC_TEST	+= ./src/kfile/kfile_version.c
+SRC_TEST	+= ./src/kfile/fs_layouts/layout_uuid_uint64.c
 
 SRC_CLIENT	+= ./src/apps/client.c
 SRC_CLIENT	+= ./sdtl/src/sdtl.c
@@ -162,6 +163,7 @@ SRC_SERVER	+= ./src/kfile/kfile_update.c
 SRC_SERVER	+= ./src/kfile/kfile_read.c
 SRC_SERVER	+= ./src/kfile/kfile_close.c
 SRC_SERVER	+= ./src/kfile/kfile_version.c
+SRC_SERVER	+= ./src/kfile/fs_layouts/layout_uuid_uint64.c
 
 
 SRC_SERVER	+= ./src/apps/restrans_srv.c

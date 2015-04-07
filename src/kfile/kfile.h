@@ -9,6 +9,7 @@
 
 
 #include "kfile_version.h"
+#include "kfile_fs_layout.h"
 #include "kfile_common.h"
 #include "kfile_ondisk.h"
 #include "kfile_io_common.h"
@@ -29,6 +30,7 @@ typedef struct kfile_t {
 	k_prng_t*	prng;
 
 	kfile_version_t	version;
+	kfile_layout_t	layout;
 	size_t		filesize;
 	uint64_t	ciphersize;
 	uint64_t	cipherstart;

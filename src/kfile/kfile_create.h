@@ -11,6 +11,8 @@
 typedef struct kfile_create_opts_t {
 	uint64_t	uuid;
 	mode_t		file_mode;
+
+	kfile_layout_t	layout;
 	kfile_version_t	version;
 	uint8_t		hash_function;
 	/* digest size in bytes, be aware of encoding rules */
