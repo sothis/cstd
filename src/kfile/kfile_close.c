@@ -14,10 +14,10 @@ int kfile_close(kfile_fd_t fd)
 	if (!kf)
 		die("KFILE file_get_userdata()");
 
-	if (kf->kdf_header.kdf_salt)
-		free(kf->kdf_header.kdf_salt);
-	if (kf->iv_header.iv)
-		free(kf->iv_header.iv);
+	if (kf->header.kdf_header.kdf_salt)
+		free(kf->header.kdf_header.kdf_salt);
+	if (kf->header.iv_header.iv)
+		free(kf->header.iv_header.iv);
 	if (kf->path_ds)
 		closedir(kf->path_ds);
 	if (kf->hash_plaintext)

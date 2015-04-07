@@ -62,4 +62,12 @@ typedef struct kfile_iv_header_t {
  *	<plain_text_mac[kfile_control_header_t.digest_bytes+1]>
 */
 
+typedef struct kfile_header_t {
+	kfile_preamble_t		preamble;
+	kfile_dynamic_data_header_t	dyndata;
+	kfile_control_header_t		control;
+	kfile_kdf_header_t		kdf_header;
+	kfile_iv_header_t		iv_header;
+} __attribute__((packed)) kfile_header_t;
+
 #endif /* _KFILE_ONDISK_H_ */

@@ -47,15 +47,10 @@ typedef struct kfile_t {
 	unsigned char*	datadigest;
 	unsigned char*	cipherdigest;
 
-	kfile_preamble_t		preamble;
-	kfile_dynamic_data_header_t	dyndata;
-	kfile_control_header_t		control;
-	kfile_kdf_header_t		kdf_header;
-	kfile_iv_header_t		iv_header;
-
+	kfile_header_t	header;
 } kfile_t;
 
-void xuuid_to_path(uint64_t uuid, char** compl, char** fpath, char** fname);
+//void xuuid_to_path(uint64_t uuid, char** compl, char** fpath, char** fname);
 const char* kfile_get_resource_name(kfile_read_fd_t fd);
 
 

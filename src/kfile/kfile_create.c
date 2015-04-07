@@ -101,7 +101,7 @@ static int _kfile_init_algorithms_with_opts
 	if (!kf->prng)
 		return -1;
 
-	kf->digestbytes = kf->control.digest_bytes + 1;
+	kf->digestbytes = kf->header.control.digest_bytes + 1;
 	kf->headerdigest = xcalloc(1, kf->digestbytes);
 	kf->datadigest = xcalloc(1, kf->digestbytes);
 	kf->cipherdigest = xcalloc(1, kf->digestbytes);
@@ -133,35 +133,46 @@ static int _kfile_init_algorithms_with_opts
 	kf->noncebytes = k_sc_get_nonce_bytes(kf->scipher);
 	if (!kf->noncebytes || (kf->noncebytes > 256))
 		return -1;
-	kf->iv_header.iv_bytes = kf->noncebytes-1;
-	kf->kdf_header.kdf_salt_bytes = kf->control.digest_bytes;
+	kf->header.iv_header.iv_bytes = kf->noncebytes-1;
+	kf->header.kdf_header.kdf_salt_bytes = kf->header.control.digest_bytes;
 
-	kf->kdf_header.kdf_salt = xcalloc(kf->kdf_header.kdf_salt_bytes+1,
+	kf->header.kdf_header.kdf_salt =
+		xcalloc(kf->header.kdf_header.kdf_salt_bytes+1,
+			sizeof(unsigned char));
+
+	kf->header.iv_header.iv = xcalloc(kf->header.iv_header.iv_bytes+1,
 		sizeof(unsigned char));
 
-	kf->iv_header.iv = xcalloc(kf->iv_header.iv_bytes+1,
-		sizeof(unsigned char));
 
+	k_prng_update(kf->prng, kf->header.kdf_header.kdf_salt,
+		kf->header.kdf_header.kdf_salt_bytes+1);
 
-	k_prng_update(kf->prng, kf->kdf_header.kdf_salt, kf->kdf_header.kdf_salt_bytes+1);
-	while (!memcmp(kf->kdf_header.kdf_salt, zero_nonce, kf->kdf_header.kdf_salt_bytes+1)) {
-		k_prng_update(kf->prng, kf->kdf_header.kdf_salt, kf->kdf_header.kdf_salt_bytes+1);
+	while (!memcmp(kf->header.kdf_header.kdf_salt, zero_nonce,
+	kf->header.kdf_header.kdf_salt_bytes+1)) {
+		k_prng_update(kf->prng, kf->header.kdf_header.kdf_salt,
+			kf->header.kdf_header.kdf_salt_bytes+1);
 	}
 
-	kdf_iterations = kfile_get_iteration_count(opts->version, opts->kdf_complexity);
+	kdf_iterations = kfile_get_iteration_count(opts->version,
+		opts->kdf_complexity);
 
 	kf->key = _k_key_derive_skein_1024(opts->low_entropy_pass,
-		kf->kdf_header.kdf_salt, kf->kdf_header.kdf_salt_bytes+1,
+		kf->header.kdf_header.kdf_salt,
+		kf->header.kdf_header.kdf_salt_bytes+1,
 		opts->key_bytes, kdf_iterations);
 	if (!kf->key)
 		return -1;
 
-	k_prng_update(kf->prng, kf->iv_header.iv, kf->iv_header.iv_bytes+1);
-	while (!memcmp(kf->iv_header.iv, zero_nonce, kf->iv_header.iv_bytes+1)) {
-		k_prng_update(kf->prng, kf->iv_header.iv, kf->iv_header.iv_bytes+1);
+	k_prng_update(kf->prng, kf->header.iv_header.iv,
+		kf->header.iv_header.iv_bytes+1);
+	while (!memcmp(kf->header.iv_header.iv, zero_nonce,
+	kf->header.iv_header.iv_bytes+1)) {
+		k_prng_update(kf->prng, kf->header.iv_header.iv,
+		kf->header.iv_header.iv_bytes+1);
 	}
 
-	if (k_sc_set_key(kf->scipher, kf->iv_header.iv, kf->key, opts->key_bytes * 8))
+	if (k_sc_set_key(kf->scipher, kf->header.iv_header.iv,
+		kf->key, opts->key_bytes * 8))
 		return -1;
 
 	return 0;
@@ -259,18 +270,19 @@ kfile_write_fd_t kfile_create(kfile_create_opts_t* opts)
 	kf->iobuf_size = opts->iobuf_size;
 	kf->iobuf = xmalloc(opts->iobuf_size);
 
-	strcpy(kf->preamble.magic, KFILE_MAGIC);
-	strcpy(kf->preamble.version, kfile_version_string(opts->version));
+	strcpy(kf->header.preamble.magic, KFILE_MAGIC);
+	strcpy(kf->header.preamble.version,
+		kfile_version_string(opts->version));
 
-	kf->control.hash_function = opts->hash_function;
-	kf->control.cipher_function = opts->cipher_function;
-	kf->control.cipher_mode = opts->cipher_mode;
-	kf->control.kdf_function = opts->kdf_function;
-	kf->control.kdf_complexity = opts->kdf_complexity;
+	kf->header.control.hash_function = opts->hash_function;
+	kf->header.control.cipher_function = opts->cipher_function;
+	kf->header.control.cipher_mode = opts->cipher_mode;
+	kf->header.control.kdf_function = opts->kdf_function;
+	kf->header.control.kdf_complexity = opts->kdf_complexity;
 
-	assign_uint8_size(&kf->control.digest_bytes, opts->digest_bytes);
-	assign_uint8_size(&kf->control.key_bytes, opts->key_bytes);
-
+	assign_uint8_size(&kf->header.control.digest_bytes,
+		opts->digest_bytes);
+	assign_uint8_size(&kf->header.control.key_bytes, opts->key_bytes);
 
 	kf->resourcename_len = strlen(opts->resource_name);
 
@@ -289,25 +301,28 @@ kfile_write_fd_t kfile_create(kfile_create_opts_t* opts)
 	if (file_set_userdata(kf->fd, kf))
 		die("KFILE file_set_userdata()");
 
-	if (xwrite(kf->fd, &kf->preamble, sizeof(kfile_preamble_t)))
+	if (xwrite(kf->fd, &kf->header.preamble, sizeof(kfile_preamble_t)))
 		pdie("KFILE can't write file header");
 
-	if (xwrite(kf->fd, &kf->dyndata, sizeof(kfile_dynamic_data_header_t)))
+	if (xwrite(kf->fd, &kf->header.dyndata,
+		sizeof(kfile_dynamic_data_header_t)))
 		pdie("KFILE can't write file header");
 
-	if (xwrite(kf->fd, &kf->control, sizeof(kfile_control_header_t)))
+	if (xwrite(kf->fd, &kf->header.control, sizeof(kfile_control_header_t)))
 		pdie("KFILE can't write file header");
 
-	if (xwrite(kf->fd, &kf->kdf_header.kdf_salt_bytes, 1))
+	if (xwrite(kf->fd, &kf->header.kdf_header.kdf_salt_bytes, 1))
 		pdie("KFILE can't write file header");
 
-	if (xwrite(kf->fd, kf->kdf_header.kdf_salt, kf->kdf_header.kdf_salt_bytes+1))
+	if (xwrite(kf->fd, kf->header.kdf_header.kdf_salt,
+		kf->header.kdf_header.kdf_salt_bytes+1))
 		pdie("KFILE can't write file header");
 
-	if (xwrite(kf->fd, &kf->iv_header.iv_bytes, 1))
+	if (xwrite(kf->fd, &kf->header.iv_header.iv_bytes, 1))
 		pdie("KFILE can't write file header");
 
-	if (xwrite(kf->fd, kf->iv_header.iv, kf->iv_header.iv_bytes+1))
+	if (xwrite(kf->fd, kf->header.iv_header.iv,
+		kf->header.iv_header.iv_bytes+1))
 		pdie("KFILE can't write file header");
 
 	_kf_calculate_header_digest(kf);
