@@ -341,6 +341,7 @@ Release: release
 Debug: debug
 
 clean:
+	@$(MAKE) $(VERB) -C libk clean
 	@echo "deleting '$(OUTDIR)'"
 	@-rm -rf $(OUTDIR)
 
@@ -400,7 +401,7 @@ else
 endif
 
 libk/build/$(TOOLCHAIN)_$(CONF)/libk.a:
-	$(MAKE) $(VERB) -C libk TOOLCHAIN=$(TOOLCHAIN) $(CONF)
+	@$(MAKE) $(VERB) -C libk TOOLCHAIN=$(TOOLCHAIN) $(CONF)
 
 .PHONY: libk/build/$(TOOLCHAIN)_$(CONF)/libk.a
 
