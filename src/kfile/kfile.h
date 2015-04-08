@@ -1,12 +1,9 @@
 #ifndef _KFILE_H_
 #define _KFILE_H_
 
+
 #include "cstd.h"
 #include <libk/libk.h>
-
-
-#include <dirent.h>
-
 
 #include "kfile_version.h"
 #include "kfile_fs_layout.h"
@@ -20,10 +17,11 @@
 #include "kfile_update.h"
 #include "kfile_close.h"
 
+
 typedef struct kfile_t {
 	int		fd;
-	DIR*		path_ds;
-	int		path_fd;
+	//DIR*		path_ds;
+	//int		path_fd;
 	k_hash_t*	hash_plaintext;
 	k_hash_t*	hash_ciphertext;
 	k_sc_t*		scipher;
@@ -36,8 +34,6 @@ typedef struct kfile_t {
 	uint64_t	cipherstart;
 	size_t		noncebytes;
 	size_t		digestbytes;
-	char*		path;
-	char*		filename;
 	size_t		iobuf_size;
 	unsigned char*	iobuf;
 	unsigned char*	key;
@@ -50,9 +46,8 @@ typedef struct kfile_t {
 	kfile_header_t	header;
 } kfile_t;
 
-//void xuuid_to_path(uint64_t uuid, char** compl, char** fpath, char** fname);
-const char* kfile_get_resource_name(kfile_read_fd_t fd);
 
+const char* kfile_get_resource_name(kfile_read_fd_t fd);
 
 
 #endif /* _KFILE_H_ */

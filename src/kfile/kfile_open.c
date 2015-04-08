@@ -262,6 +262,18 @@ kfile_read_fd_t kfile_open(kfile_open_opts_t* opts)
 	struct stat st;
 	kfile_t* kf;
 
+	if (!opts)
+		return -1;
+
+	/* invalid layout */
+	if ((!opts->layout) || (opts->layout >= KFILE_LAYOUT_MAX))
+		return -1;
+
+	/* only support KFILE_LAYOUT_UUID_UINT64 at the moment until
+	 * layout abstraction code is complete */
+	if (opts->layout != KFILE_LAYOUT_UUID_UINT64)
+		return -1;
+
 	if (!opts->iobuf_size)
 		die("KFILE I/O buffer size mustn't be zero");
 
@@ -272,19 +284,12 @@ kfile_read_fd_t kfile_open(kfile_open_opts_t* opts)
 	kf->iobuf_size = opts->iobuf_size;
 	kf->iobuf = xmalloc(opts->iobuf_size);
 
-	xuuid_to_path(opts->uuid, 0, &kf->path, &kf->filename);
-
-	kf->path_ds = opendir(kf->path);
-	if (!kf->path_ds)
-		die("KFILE opendir()");
-
-	kf->path_fd = dirfd(kf->path_ds);
-	if (kf->path_fd < 0)
-		die("KFILE dirfd()");
-
-	kf->fd = openat(kf->path_fd, kf->filename, O_RDONLY | O_NOATIME);
+	kf->fd = uuid_open_file_ro(opts->uuid);
 	if (kf->fd < 0)
-		pdie("KFILE openat()");
+		pdie("KFILE uuid_open_file_ro()");
+
+	if (file_set_userdata(kf->fd, kf))
+		die("KFILE file_set_userdata()");
 
 	if (fstat(kf->fd, &st))
 		pdie("KFILE fstat()");
@@ -293,11 +298,6 @@ kfile_read_fd_t kfile_open(kfile_open_opts_t* opts)
 		die("KFILE not a regular file");
 
 	kf->filesize = st.st_size;
-
-	file_register_fd(kf->fd, kf->path, kf->filename);
-
-	if (file_set_userdata(kf->fd, kf))
-		die("KFILE file_set_userdata()");
 
 	if (_kfile_read_and_check_file_header(kf, opts))
 		die("KFILE corrupt or invalid file header");

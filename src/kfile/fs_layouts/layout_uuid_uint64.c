@@ -93,7 +93,7 @@ static void uuid_to_path
 	if (fpath)
 		strcpy(fpath, path);
 	if (fname)
-		strcpy(name, fname);
+		strcpy(fname, name);
 
 	return;
 }

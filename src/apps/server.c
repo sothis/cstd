@@ -188,6 +188,7 @@ int _on_sdtl_event(void* userdata, sdtl_event_t e, sdtl_data_t* data)
 				kfcopts.uuid = uuid;
 
 				kfcopts.file_mode = 0400;
+				kfcopts.layout = KFILE_LAYOUT_UUID_UINT64,
 				kfcopts.version = KFILE_VERSION_0_1;
 				kfcopts.hash_function = HASHSUM_SKEIN_512;
 				kfcopts.digest_bytes = 64;

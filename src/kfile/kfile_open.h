@@ -7,6 +7,7 @@
 
 
 typedef struct kfile_open_opts_t {
+	kfile_layout_t	layout;
 	uint64_t	uuid;
 	size_t		iobuf_size;
 	/* check cipher digest with kfile_open().

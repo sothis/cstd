@@ -8,87 +8,6 @@
 #include <inttypes.h>
 
 
-static int mkdirp(const char* path)
-{
-	char* p, *tok;
-	int e, r = 0;
-
-	if (!path || !strlen(path))
-		return -1;
-
-	p = xstrdup(path);
-
-	if (dir_save_cwd())
-		pdie("dir_save_cwd()");
-
-	tok = strtok(p, "/");
-	while (tok) {
-		e = mkdir(tok, 0755);
-		if (e && (errno != EEXIST)) {
-			r = -1;
-			goto out;
-		}
-		if (chdir(tok)) {
-			r = -1;
-			goto out;
-		}
-		tok = strtok(0, "/");
-	}
-	r = 0;
-out:
-	if (dir_restore_cwd())
-		pdie("dir_restore_cwd()");
-	free(p);
-	return r;
-}
-
-void xuuid_to_path(uint64_t uuid, char** compl, char** fpath, char** fname)
-{
-	int i, j;
-	char uuid_ascii[20];
-	char cpath[40];
-	char path[20];
-	char name[5];
-
-	memset(name, 0, 5);
-	memset(path, 0, 20);
-	memset(cpath, 0, 40);
-	memset(uuid_ascii, 0, 20);
-	snprintf(uuid_ascii, 21, "%020" PRIu64, uuid);
-
-	for (j = 0, i = 0; i <= 16; i += 4, j += 5) {
-		if (i < 16) {
-			path[j] = uuid_ascii[i];
-			path[j+1] = uuid_ascii[i+1];
-			path[j+2] = uuid_ascii[i+2];
-			path[j+3] = uuid_ascii[i+3];
-			if (i < 12)
-				path[j+4] = '/';
-		} else {
-			name[0] = uuid_ascii[i];
-			name[1] = uuid_ascii[i+1];
-			name[2] = uuid_ascii[i+2];
-			name[3] = uuid_ascii[i+3];
-		}
-
-		cpath[j] = uuid_ascii[i];
-		cpath[j+1] = uuid_ascii[i+1];
-		cpath[j+2] = uuid_ascii[i+2];
-		cpath[j+3] = uuid_ascii[i+3];
-		if (i < 16)
-			cpath[j+4] = '/';
-	}
-
-	if (compl)
-		*compl = xstrdup(cpath);
-	if (fpath)
-		*fpath = xstrdup(path);
-	if (fname)
-		*fname = xstrdup(name);
-
-	return;
-}
-
 static int _kfile_init_algorithms_with_opts
 (kfile_t* kf, kfile_create_opts_t* opts)
 {
@@ -185,6 +104,15 @@ static inline int check_create_opts(kfile_create_opts_t* opts)
 	size_t len = 0;
 
 	if (!opts)
+		return -1;
+
+	/* invalid layout */
+	if ((!opts->layout) || (opts->layout >= KFILE_LAYOUT_MAX))
+		return -1;
+
+	/* only support KFILE_LAYOUT_UUID_UINT64 at the moment until
+	 * layout abstraction code is complete */
+	if (opts->layout != KFILE_LAYOUT_UUID_UINT64)
 		return -1;
 
 	/* requested version not supported */
@@ -290,6 +218,7 @@ kfile_write_fd_t kfile_create(kfile_create_opts_t* opts)
 
 	_kfile_init_algorithms_with_opts(kf, opts);
 
+#if 0
 	xuuid_to_path(opts->uuid, 0, &kf->path, &kf->filename);
 	if (mkdirp(kf->path))
 		pdie("KFILE mkdirp() for uuid " PRIu64 "\n", opts->uuid);
@@ -299,6 +228,10 @@ kfile_write_fd_t kfile_create(kfile_create_opts_t* opts)
 	if (kf->fd < 0)
 		pdie("KFILE error creating file '%s' in directory '%s'",
 			kf->filename, kf->path);
+#endif
+	kf->fd = uuid_create_file(opts->uuid, opts->file_mode);
+	if (kf->fd < 0)
+		pdie("KFILE error creating file for uuid %lu\n", opts->uuid);
 
 	if (file_set_userdata(kf->fd, kf))
 		die("KFILE file_set_userdata()");

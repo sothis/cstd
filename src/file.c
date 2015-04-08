@@ -96,10 +96,14 @@ void file_register_fd(int fd, char* path, char* name)
 {
 	struct file_t* file = 0;
 
+	/* todo: check for duplicate here before adding file  */
+
 	file = xcalloc(1, sizeof(struct file_t));
 
-	file->name = xstrdup(name);
-	file->path = path_resolve_const(path);
+	if (name)
+		file->name = xstrdup(name);
+	if (path)
+		file->path = path_resolve_const(path);
 	file->fd = fd;
 	_file_add_to_list(file);
 }
@@ -189,6 +193,7 @@ int file_sync_and_close(int fd)
 
 	file = _file_get_by_fd(fd);
 	if (!file) {
+		printf("here\n");
 		close(fd);
 		return 0;
 	}
@@ -224,8 +229,10 @@ out:
 
 	_file_remove_from_list(file);
 
-	free(file->path);
-	free(file->name);
+	if (file->path)
+		free(file->path);
+	if (file->name)
+		free(file->name);
 	if (file->tmp_name)
 		free(file->tmp_name);
 	free(file);

@@ -32,6 +32,7 @@ int cstd_main(int argc, char* argv[], char* envp[])
 	kfile_create_opts_t kfcopts = {
 		.uuid			= 18446744073709551615ul,
 		.file_mode		= 0400,
+		.layout			= KFILE_LAYOUT_UUID_UINT64,
 		.version		= KFILE_VERSION_0_1,
 		.hash_function		= HASHSUM_SKEIN_512,
 		.digest_bytes		= 64,
@@ -58,6 +59,7 @@ int cstd_main(int argc, char* argv[], char* envp[])
 	unsigned char rdata[4096];
 	kfile_read_fd_t rfd;
 	kfile_open_opts_t kfoopts = {
+		.layout			= KFILE_LAYOUT_UUID_UINT64,
 		.uuid			= 18446744073709551615ul,
 		.iobuf_size		= 65536,
 		.check_cipherdigest	= 1,

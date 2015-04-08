@@ -18,8 +18,6 @@ int kfile_close(kfile_fd_t fd)
 		free(kf->header.kdf_header.kdf_salt);
 	if (kf->header.iv_header.iv)
 		free(kf->header.iv_header.iv);
-	if (kf->path_ds)
-		closedir(kf->path_ds);
 	if (kf->hash_plaintext)
 		k_hash_finish(kf->hash_plaintext);
 	if (kf->hash_ciphertext)
@@ -32,10 +30,6 @@ int kfile_close(kfile_fd_t fd)
 		free(kf->key);
 	if (kf->iobuf)
 		free(kf->iobuf);
-	if (kf->filename)
-		free(kf->filename);
-	if (kf->path)
-		free(kf->path);
 	if (kf->headerdigest)
 		free(kf->headerdigest);
 	if (kf->datadigest)
@@ -44,7 +38,7 @@ int kfile_close(kfile_fd_t fd)
 		free(kf->cipherdigest);
 	free(kf);
 
-	return file_sync_and_close(fd);
+	return uuid_close_file(fd);
 }
 
 void kfile_write_digests_and_close(kfile_write_fd_t fd)
