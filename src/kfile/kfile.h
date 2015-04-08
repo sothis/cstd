@@ -20,8 +20,8 @@
 
 typedef struct kfile_t {
 	int		fd;
-	//DIR*		path_ds;
-	//int		path_fd;
+	kfile_header_t	header;
+
 	k_hash_t*	hash_plaintext;
 	k_hash_t*	hash_ciphertext;
 	k_sc_t*		scipher;
@@ -42,8 +42,6 @@ typedef struct kfile_t {
 	unsigned char*	headerdigest;
 	unsigned char*	datadigest;
 	unsigned char*	cipherdigest;
-
-	kfile_header_t	header;
 } kfile_t;
 
 
