@@ -3,4 +3,4 @@
 	url = git://github.com/sothis/sdtl.git
 [submodule "libk"]
 	path = libk
-	url = git://github.com/scm/libk.git
+	url = git://github.com/sothis/libk.git
