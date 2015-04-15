@@ -1,6 +1,6 @@
 [submodule "sdtl"]
 	path = sdtl
-	url = git@github.com:/sothis/sdtl.git
+	url = git://github.com:/sothis/sdtl.git
 [submodule "libk"]
 	path = libk
-	url = git@gitbox.noip.me:/scm/libk.git
+	url = git://github.com:/scm/libk.git
