@@ -34,7 +34,7 @@ void sdtl_session_destroy(sdtl_session_t* sess)
 	if (!sess)
 		return;
 
-	/* sdtl_open_write() && sdtl_open_read() don't allocate any
+	/* sdtl_open_write() && sdtl_open_read() doesn't allocate any
 	 * memory on the heap */
 	free(sess);
 }
