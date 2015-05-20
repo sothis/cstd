@@ -366,6 +366,7 @@ final-all-recursive:							\
 
 $(BUILDDIR)/$(PROJECT_NAME)_test:					\
 	$(OBJECTS_TEST) libk/build/$(TOOLCHAIN)_$(CONF)/libk.a		\
+	sdtl/build/$(TOOLCHAIN)_$(CONF)/sdtl.a				\
 	$(BUILDDIR)/$(PROJECT_NAME).a
 	$(print_ld) $(subst $(PWD)/,./,$(abspath $(@)))
 	@-mkdir -p $(dir $(@))
@@ -378,7 +379,8 @@ else
 endif
 
 $(BUILDDIR)/$(PROJECT_NAME)_client:					\
-	$(OBJECTS_CLIENT) $(BUILDDIR)/$(PROJECT_NAME).a
+	$(OBJECTS_CLIENT) $(BUILDDIR)/$(PROJECT_NAME).a			\
+	sdtl/build/$(TOOLCHAIN)_$(CONF)/sdtl.a
 	$(print_ld) $(subst $(PWD)/,./,$(abspath $(@)))
 	@-mkdir -p $(dir $(@))
 ifdef PLAT_DARWIN
@@ -391,6 +393,7 @@ endif
 
 $(BUILDDIR)/$(PROJECT_NAME)_server:					\
 	$(OBJECTS_SERVER) libk/build/$(TOOLCHAIN)_$(CONF)/libk.a	\
+	sdtl/build/$(TOOLCHAIN)_$(CONF)/sdtl.a				\
 	$(BUILDDIR)/$(PROJECT_NAME).a
 	$(print_ld) $(subst $(PWD)/,./,$(abspath $(@)))
 	@-mkdir -p $(dir $(@))
@@ -405,7 +408,11 @@ endif
 libk/build/$(TOOLCHAIN)_$(CONF)/libk.a:
 	@$(MAKE) $(VERB) -C libk TOOLCHAIN=$(TOOLCHAIN) $(CONF)
 
+sdtl/build/$(TOOLCHAIN)_$(CONF)/sdtl.a:
+	@$(MAKE) $(VERB) -C sdtl TOOLCHAIN=$(TOOLCHAIN) $(CONF)
+
 .PHONY: libk/build/$(TOOLCHAIN)_$(CONF)/libk.a
+.PHONY: sdtl/build/$(TOOLCHAIN)_$(CONF)/sdtl.a
 
 $(BUILDDIR)/.obj/$(PROJECT_NAME).ro: $(OBJECTS)
 	@$(print_ld) $(subst $(PWD)/,./,$(abspath $(@)))
