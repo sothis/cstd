@@ -254,7 +254,7 @@ endif
 ifdef PLAT_DARWIN
 ARFLAGS		:= -static -o
 else
-ARFLAGS		:= cru
+ARFLAGS		:= cr
 STRIPFLAGS	:= -s
 endif
 
