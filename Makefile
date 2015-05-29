@@ -344,6 +344,7 @@ Debug: debug
 
 clean:
 	@$(MAKE) $(VERB) -C libk clean
+	@$(MAKE) $(VERB) -C sdtl clean
 	@echo "deleting '$(OUTDIR)'"
 	@-rm -rf $(OUTDIR)
 
