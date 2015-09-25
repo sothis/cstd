@@ -1,0 +1,4 @@
+#!/bin/bash
+git remote set-url origin ssh://git@github.com/sothis/cstd.git
+git checkout master
+
