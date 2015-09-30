@@ -78,7 +78,7 @@ int on_sdtl_read(void* userdata, sdtl_event_t e, sdtl_data_t* data)
 	return 0;
 }
 
-int cstd_main(int argc, char* argv[], char* envp[])
+int main(int argc, char* argv[], char* envp[])
 {
 	struct addrinfo filter, *servinfo, *p;
 	int r, fd = -1;

@@ -4,7 +4,7 @@
 #include <stdio.h>
 #include <string.h>
 
-int cstd_main(int argc, char* argv[], char* envp[])
+int main(int argc, char* argv[], char* envp[])
 {
 #if 0
 	int fd0, fd1, fd2, fd3;

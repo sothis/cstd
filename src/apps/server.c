@@ -302,7 +302,7 @@ struct statvfs {
 };
 #endif
 
-int cstd_main(int argc, char* argv[], char* envp[])
+int main(int argc, char* argv[], char* envp[])
 {
 #if 1
 	int res = 0;
