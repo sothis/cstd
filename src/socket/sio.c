@@ -208,6 +208,22 @@ int sio_set_ipv6_only(int af_inet6sock, int32_t val)
 	return res;
 }
 
+int sio_set_tcp_no_delay(int sock, int32_t val)
+{
+	int res;
+	res = setsockopt(sock, SOL_TCP, TCP_NODELAY,
+		(const IO_BUF_TYPE*)&val, sizeof(int32_t));
+	return res;
+}
+
+int sio_set_tcp_cork(int sock, int32_t val)
+{
+	int res;
+	res = setsockopt(sock, SOL_TCP, TCP_CORK,
+		(const IO_BUF_TYPE*)&val, sizeof(int32_t));
+	return res;
+}
+
 int sio_set_recv_timeout(int sock, int32_t milliseconds)
 {
 	int res;
