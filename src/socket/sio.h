@@ -34,6 +34,7 @@ int sio_select(int nfds, fd_set* rd, fd_set* wr, fd_set* ex);
 int sio_accept(int sock);
 void sio_close(int sock);
 
+int sio_set_nonblock(int sock);
 int sio_set_reuseaddr(int sock, int32_t val);
 int sio_set_linger(int sock, int32_t val, int16_t seconds);
 int sio_set_keepalive(int sock, int32_t val);
@@ -50,6 +51,9 @@ void sio_fd_clr(int sock, fd_set* set);
 void sio_fd_set(int sock, fd_set* set);
 int sio_fd_isset(int sock, fd_set* set);
 void sio_fd_zero(fd_set* set);
+
+int sio_new_tcp_listening_socket
+(const char* interface, uint16_t port, int backlog, int non_blocking);
 
 #if TLS
 SSL* sio_ssl_new(void);

@@ -3,6 +3,7 @@
 #include <errno.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdio.h>
 
 #if defined(_WIN32)
 #include <io.h>
@@ -11,6 +12,7 @@
 #define socklen_t	int
 #define IO_BUF_TYPE	char
 #else
+#include <fcntl.h>
 #include <signal.h>
 #include <unistd.h>
 #include <netdb.h>
@@ -171,6 +173,21 @@ int sio_fd_isset(int sock, fd_set* set)
 void sio_fd_zero(fd_set* set)
 {
 	FD_ZERO(set);
+}
+
+int sio_set_nonblock(int sock)
+{
+	int res;
+	int flags;
+
+	flags = fcntl(sock, F_GETFL, 0);
+	if (flags < 0)
+		return -1;
+
+	flags |= O_NONBLOCK;
+	res = fcntl(sock, F_SETFL, flags);
+
+	return res;
 }
 
 int sio_set_reuseaddr(int sock, int32_t val)
@@ -400,4 +417,82 @@ int sio_listen4(const char* ifce, uint16_t port, int reuseaddr, int backlog)
 	}
 
 	return sock;
+}
+
+int sio_new_tcp_listening_socket
+(const char* interface, uint16_t port, int backlog, int non_blocking)
+{
+	char _port[6];
+	int r = 0, fd = -1;
+	struct addrinfo* addresses = 0;
+	struct addrinfo* it = 0;
+	struct addrinfo addr_filter = {
+		.ai_flags	= AI_PASSIVE | AI_NUMERICSERV,
+		.ai_family	= AF_INET6,
+		.ai_socktype	= SOCK_STREAM,
+		.ai_protocol	= IPPROTO_TCP,
+	};
+
+	if (!port)
+		return -1;
+
+	snprintf(_port, sizeof(_port), "%u", port);
+
+	r = getaddrinfo(interface, _port, &addr_filter, &addresses);
+	if (r < 0) {
+		fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(r));
+		return -1;
+	}
+
+	for (it = addresses; it; it = it->ai_next) {
+		fd = socket(it->ai_family, it->ai_socktype, it->ai_protocol);
+		if (fd < 0) {
+		//	perror("socket");
+			continue;
+		}
+
+		/* ipv6_only is off per default according to RFC3493,
+		 * but windows has it on by default (what a surprise)
+		 * to maintain backwards compatibility */
+		if (sio_set_ipv6_only(fd, 0)) {
+			perror("sio_set_ipv6_only(off)");
+			sio_close(fd);
+			continue;
+		}
+		if (sio_set_reuseaddr(fd, 1)) {
+			perror("sio_set_reuseaddr(on)");
+			sio_close(fd);
+			continue;
+		}
+
+		if (bind(fd, it->ai_addr, it->ai_addrlen) == -1) {
+			perror("bind");
+			sio_close(fd);
+			continue;
+		}
+		/* accept the first socket we could bind to the interface */
+		break;
+	}
+	if (addresses)
+		freeaddrinfo(addresses);
+
+	if (fd < 0)
+		return -1;
+
+	if (non_blocking && sio_set_nonblock(fd)) {
+		perror("sio_set_nonblock(on)");
+		sio_close(fd);
+		return -1;
+	}
+
+	/* adjust listen backlog to tune the accept() queue size
+	 * see /proc/sys/net/ipv4/tcp_max_syn_backlog for the queue
+	 * size of already accepted TCP connections */
+	if (listen(fd, backlog)) {
+		perror("listen");
+		sio_close(fd);
+		return -1;
+	}
+
+	return fd;
 }
