@@ -18,6 +18,7 @@
 #include <netdb.h>
 #include <netinet/in.h>
 #include <sys/socket.h>
+#include <sys/epoll.h>
 #define IO_BUF_TYPE	void
 #endif
 
@@ -175,7 +176,7 @@ void sio_fd_zero(fd_set* set)
 	FD_ZERO(set);
 }
 
-int sio_set_nonblock(int sock)
+int sio_set_nonblock(int sock, int32_t val)
 {
 	int res;
 	int flags;
@@ -184,9 +185,12 @@ int sio_set_nonblock(int sock)
 	if (flags < 0)
 		return -1;
 
-	flags |= O_NONBLOCK;
-	res = fcntl(sock, F_SETFL, flags);
+	if (val)
+		flags |= O_NONBLOCK;
+	else
+		flags &= ~O_NONBLOCK;
 
+	res = fcntl(sock, F_SETFL, flags);
 	return res;
 }
 
@@ -419,8 +423,7 @@ int sio_listen4(const char* ifce, uint16_t port, int reuseaddr, int backlog)
 	return sock;
 }
 
-int sio_new_tcp_listening_socket
-(const char* interface, uint16_t port, int backlog, int non_blocking)
+int sio_new_tcp_listening_socket(struct tcp_sock_opt_t* sock_opts)
 {
 	char _port[6];
 	int r = 0, fd = -1;
@@ -433,12 +436,18 @@ int sio_new_tcp_listening_socket
 		.ai_protocol	= IPPROTO_TCP,
 	};
 
-	if (!port)
+	if (!sock_opts)
 		return -1;
 
-	snprintf(_port, sizeof(_port), "%u", port);
+	if (!sock_opts->port)
+		return -1;
 
-	r = getaddrinfo(interface, _port, &addr_filter, &addresses);
+	if (!sock_opts->backlog)
+		sock_opts->backlog = SOMAXCONN;
+
+	snprintf(_port, sizeof(_port), "%u", sock_opts->port);
+
+	r = getaddrinfo(sock_opts->interface, _port, &addr_filter, &addresses);
 	if (r < 0) {
 		fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(r));
 		return -1;
@@ -447,20 +456,53 @@ int sio_new_tcp_listening_socket
 	for (it = addresses; it; it = it->ai_next) {
 		fd = socket(it->ai_family, it->ai_socktype, it->ai_protocol);
 		if (fd < 0) {
-		//	perror("socket");
+			perror("socket");
 			continue;
 		}
 
-		/* ipv6_only is off per default according to RFC3493,
-		 * but windows has it on by default (what a surprise)
-		 * to maintain backwards compatibility */
-		if (sio_set_ipv6_only(fd, 0)) {
-			perror("sio_set_ipv6_only(off)");
+		if (sio_set_ipv6_only(fd, sock_opts->ipv6_only)) {
+			perror("sio_set_ipv6_only()");
 			sio_close(fd);
 			continue;
 		}
-		if (sio_set_reuseaddr(fd, 1)) {
-			perror("sio_set_reuseaddr(on)");
+		if (sio_set_reuseaddr(fd, sock_opts->reuse_address)) {
+			perror("sio_set_reuseaddr()");
+			sio_close(fd);
+			continue;
+		}
+		if (sio_set_keepalive(fd, sock_opts->keep_alive)) {
+			perror("sio_set_keepalive()");
+			sio_close(fd);
+			continue;
+		}
+		if (sio_set_send_timeout(fd, sock_opts->send_timeout_ms)) {
+			perror("sio_set_send_timeout()");
+			sio_close(fd);
+			continue;
+		}
+		if (sio_set_recv_timeout(fd, sock_opts->recv_timeout_ms)) {
+			perror("sio_set_recv_timeout()");
+			sio_close(fd);
+			continue;
+		}
+		if (sio_set_tcp_no_delay(fd, sock_opts->no_delay)) {
+			perror("sio_set_tcp_no_delay()");
+			sio_close(fd);
+			continue;
+		}
+		if (sio_set_tcp_cork(fd, sock_opts->cork)) {
+			perror("sio_set_tcp_cork()");
+			sio_close(fd);
+			continue;
+		}
+		if (sio_set_linger(fd, sock_opts->set_linger,
+		sock_opts->linger_seconds)) {
+			perror("sio_set_linger()");
+			sio_close(fd);
+			continue;
+		}
+		if (sio_set_nonblock(fd, sock_opts->non_blocking)) {
+			perror("sio_set_nonblock()");
 			sio_close(fd);
 			continue;
 		}
@@ -479,20 +521,273 @@ int sio_new_tcp_listening_socket
 	if (fd < 0)
 		return -1;
 
-	if (non_blocking && sio_set_nonblock(fd)) {
-		perror("sio_set_nonblock(on)");
-		sio_close(fd);
-		return -1;
-	}
-
 	/* adjust listen backlog to tune the accept() queue size
 	 * see /proc/sys/net/ipv4/tcp_max_syn_backlog for the queue
 	 * size of already accepted TCP connections */
-	if (listen(fd, backlog)) {
+	if (listen(fd, sock_opts->backlog)) {
 		perror("listen");
 		sio_close(fd);
 		return -1;
 	}
 
 	return fd;
+}
+
+
+int sio_new_tcp_connection(struct tcp_sock_opt_t* sock_opts)
+{
+	char _port[6];
+	int r, fd = -1;
+	struct addrinfo* addresses = 0;
+	struct addrinfo* it = 0;
+	struct addrinfo addr_filter = {
+		.ai_flags	= AI_NUMERICSERV,
+		.ai_family	= AF_UNSPEC,
+		.ai_socktype	= SOCK_STREAM,
+		.ai_protocol	= IPPROTO_TCP,
+	};
+
+	if (!sock_opts)
+		return -1;
+
+	if (!sock_opts->port)
+		return -1;
+
+	snprintf(_port, sizeof(_port), "%u", sock_opts->port);
+
+	r = getaddrinfo(sock_opts->remotehost, _port, &addr_filter, &addresses);
+	if (r < 0) {
+		fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(r));
+		return -1;
+	}
+
+	for (it = addresses; it; it = it->ai_next) {
+		fd = socket(it->ai_family, it->ai_socktype, it->ai_protocol);
+		if (fd < 0) {
+			perror("socket");
+			continue;
+		}
+
+		if (sio_set_keepalive(fd, sock_opts->keep_alive)) {
+			perror("sio_set_keepalive()");
+			sio_close(fd);
+			continue;
+		}
+		if (sio_set_send_timeout(fd, sock_opts->send_timeout_ms)) {
+			perror("sio_set_send_timeout()");
+			sio_close(fd);
+			continue;
+		}
+		if (sio_set_recv_timeout(fd, sock_opts->recv_timeout_ms)) {
+			perror("sio_set_recv_timeout()");
+			sio_close(fd);
+			continue;
+		}
+		if (sio_set_tcp_no_delay(fd, sock_opts->no_delay)) {
+			perror("sio_set_tcp_no_delay()");
+			sio_close(fd);
+			continue;
+		}
+		if (sio_set_tcp_cork(fd, sock_opts->cork)) {
+			perror("sio_set_tcp_cork()");
+			sio_close(fd);
+			continue;
+		}
+		if (sio_set_linger(fd, sock_opts->set_linger,
+		sock_opts->linger_seconds)) {
+			perror("sio_set_linger()");
+			sio_close(fd);
+			continue;
+		}
+		if (sio_set_nonblock(fd, sock_opts->non_blocking)) {
+			perror("sio_set_nonblock()");
+			sio_close(fd);
+			continue;
+		}
+
+		if (connect(fd, it->ai_addr, it->ai_addrlen)) {
+			perror("connect");
+			sio_close(fd);
+			continue;
+		}
+		/* accept the first socket we could connect */
+		break;
+	}
+	if (addresses)
+		freeaddrinfo(addresses);
+
+	return fd;
+}
+
+static inline int check_event_err(uint32_t ev)
+{
+	return ((ev & EPOLLERR) || (ev & EPOLLHUP) || (!(ev & EPOLLIN)));
+}
+
+static inline int add_client_to_epoll_list(int ep_fdset, int cli_sock)
+{
+	int r;
+	struct epoll_event ee = {
+		.data.fd = 0,
+		.events = EPOLLIN | EPOLLET,
+	};
+
+	r = epoll_ctl(ep_fdset, EPOLL_CTL_ADD, cli_sock, &ee);
+	return r;
+}
+
+static void accept_pending_connections
+(int srv_sock, int ep_fdset, struct tcp_sock_opt_t* cli_sock_opts)
+{
+	int cli_sock;
+	struct sockaddr in_addr;
+	socklen_t in_len = sizeof(struct sockaddr);
+
+	while (1) {
+		cli_sock = accept(srv_sock, &in_addr, &in_len);
+
+		if (cli_sock < 0) {
+			if ((errno == EAGAIN) || (errno == EWOULDBLOCK)) {
+				/* processed all pending connections */
+				break;
+			} else {
+				perror("accept");
+				continue;
+			}
+		}
+
+#if 0
+		char hbuf[NI_MAXHOST], sbuf[NI_MAXSERV];
+		int r;
+
+		r = getnameinfo(&in_addr, in_len,
+			hbuf, sizeof(hbuf), sbuf, sizeof(sbuf),
+			NI_NUMERICHOST | NI_NUMERICSERV);
+
+		if (!r) {
+			printf("Accepted connection on descriptor %d "
+				"(host=%s, port=%s)\n", client_fd, hbuf, sbuf);
+		}
+#endif
+
+		if (sio_set_keepalive(cli_sock, cli_sock_opts->keep_alive)) {
+			perror("sio_set_keepalive()");
+			sio_close(cli_sock);
+			continue;
+		}
+		if (sio_set_send_timeout(cli_sock,
+		cli_sock_opts->send_timeout_ms)) {
+			perror("sio_set_send_timeout()");
+			sio_close(cli_sock);
+			continue;
+		}
+		if (sio_set_recv_timeout(cli_sock,
+		cli_sock_opts->recv_timeout_ms)) {
+			perror("sio_set_recv_timeout()");
+			sio_close(cli_sock);
+			continue;
+		}
+		if (sio_set_tcp_no_delay(cli_sock, cli_sock_opts->no_delay)) {
+			perror("sio_set_tcp_no_delay()");
+			sio_close(cli_sock);
+			continue;
+		}
+		if (sio_set_tcp_cork(cli_sock, cli_sock_opts->cork)) {
+			perror("sio_set_tcp_cork()");
+			sio_close(cli_sock);
+			continue;
+		}
+		if (sio_set_linger(cli_sock, cli_sock_opts->set_linger,
+		cli_sock_opts->linger_seconds)) {
+			perror("sio_set_linger()");
+			sio_close(cli_sock);
+			continue;
+		}
+		if (sio_set_nonblock(cli_sock, cli_sock_opts->non_blocking)) {
+			perror("sio_set_nonblock()");
+			sio_close(cli_sock);
+			continue;
+		}
+
+		add_client_to_epoll_list(ep_fdset, cli_sock);
+	}
+}
+
+static inline void handle_epoll_event
+(int ep_fdset, int srv_sock, struct epoll_event* event,
+struct tcp_sock_opt_t* cli_sock_opts)
+{
+	if (check_event_err(event->events)) {
+		fprintf(stderr, "epoll error\n");
+		sio_close(event->data.fd);
+	} else if (event->data.fd == srv_sock) {
+		accept_pending_connections(srv_sock, ep_fdset, cli_sock_opts);
+	} else {
+		//process_client_fd(event->data.fd);
+	}
+}
+
+
+int sio_tcp_epoll_server
+(int srv_sock, int epoll_max_events, struct tcp_sock_opt_t* cli_sock_opts)
+{
+	int ep_fdset, r;
+	struct epoll_event* events;
+	struct tcp_sock_opt_t* co;
+	struct epoll_event ee;
+
+	if (!cli_sock_opts)
+		return -1;
+
+	co = cli_sock_opts;
+
+	if (!epoll_max_events)
+		epoll_max_events = 512;
+
+	events = calloc(epoll_max_events, sizeof(struct epoll_event));
+	if (!events) {
+		perror("calloc");
+		return -1;
+	}
+
+	ep_fdset = epoll_create1(0);
+	if (ep_fdset < 0) {
+		perror("epoll_create1");
+		free(events);
+		return -1;
+	}
+	ee = (struct epoll_event) {
+		.events		= EPOLLIN | EPOLLET,
+		.data.fd	= srv_sock,
+	};
+
+	r = epoll_ctl(ep_fdset, EPOLL_CTL_ADD, srv_sock, &ee);
+	if (r < 0) {
+		perror("epoll_ctl");
+		free(events);
+		return -1;
+	}
+
+	for (;;) {
+		int n, i;
+		n = epoll_wait(ep_fdset, events, epoll_max_events, -1);
+		for (i = 0; i < n; i++) {
+			handle_epoll_event(ep_fdset, srv_sock, &events[i], co);
+			#if 0
+			if (check_event_err(events[i].events)) {
+				fprintf(stderr, "epoll error\n");
+				close(events[i].data.fd);
+				continue;
+			} else if (events[i].data.fd == srv_sock) {
+				accept_pending_connections(listen_fd, ep_fdset);
+				continue;
+			} else {
+				//process_client_fd(events[i].data.fd);
+				continue;
+			}
+			#endif
+		}
+	}
+
+	return 0;
 }

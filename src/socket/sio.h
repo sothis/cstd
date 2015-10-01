@@ -28,13 +28,40 @@
 extern "C" {
 #endif
 
+typedef struct tcp_sock_opt_t {
+	union {
+		const char*	interface;
+		const char*	remotehost;
+	};
+	uint16_t	port;
+	int32_t		non_blocking;
+	int32_t		keep_alive;
+	int32_t		reuse_address; /* only for server sockets */
+	int32_t		backlog; /* only for server sockets */
+	/* ipv6_only is off per default according to RFC3493,
+	 * but windows has it on by default (what a surprise)
+	 * to maintain backwards compatibility. if set AF_INET6 server
+	 * sockets don't accept IPv4 connections. */
+	int32_t		ipv6_only;
+	int32_t		no_delay;
+	int32_t		cork;
+	int32_t		recv_timeout_ms;
+	int32_t		send_timeout_ms;
+	/* set_linger 1 and linger_seconds 0 as a last resort for too may
+	 * TIMED_WAIT sockets consuming system resources.
+	 * if it's a problem redesign the protocol so that the client
+	 * initiates shutdown. */
+	int32_t		set_linger;
+	uint16_t	linger_seconds;
+} tcp_sock_opt_t;
+
 int sio_connect4(const char* hostname, uint16_t port);
 int sio_listen4(const char* ifce, uint16_t port, int reuseaddr, int backlog);
 int sio_select(int nfds, fd_set* rd, fd_set* wr, fd_set* ex);
 int sio_accept(int sock);
 void sio_close(int sock);
 
-int sio_set_nonblock(int sock);
+int sio_set_nonblock(int sock, int32_t val);
 int sio_set_reuseaddr(int sock, int32_t val);
 int sio_set_linger(int sock, int32_t val, int16_t seconds);
 int sio_set_keepalive(int sock, int32_t val);
@@ -52,8 +79,9 @@ void sio_fd_set(int sock, fd_set* set);
 int sio_fd_isset(int sock, fd_set* set);
 void sio_fd_zero(fd_set* set);
 
-int sio_new_tcp_listening_socket
-(const char* interface, uint16_t port, int backlog, int non_blocking);
+int sio_new_tcp_listening_socket(struct tcp_sock_opt_t* sock_opts);
+int sio_new_tcp_connection(struct tcp_sock_opt_t* sock_opts);
+
 
 #if TLS
 SSL* sio_ssl_new(void);
