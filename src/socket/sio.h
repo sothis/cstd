@@ -55,6 +55,16 @@ typedef struct tcp_sock_opt_t {
 	uint16_t	linger_seconds;
 } tcp_sock_opt_t;
 
+typedef int (*fn_srv_callb_t)(int);
+
+typedef struct tcp_epoll_srv_t {
+	struct tcp_sock_opt_t	client_socket_options;
+	int			listen_fd;
+	int			max_epoll_events;
+	int			max_accept_connections;
+	fn_srv_callb_t		on_bytes_available;
+} tcp_epoll_srv_t;
+
 int sio_connect4(const char* hostname, uint16_t port);
 int sio_listen4(const char* ifce, uint16_t port, int reuseaddr, int backlog);
 int sio_select(int nfds, fd_set* rd, fd_set* wr, fd_set* ex);
@@ -81,6 +91,7 @@ void sio_fd_zero(fd_set* set);
 
 int sio_new_tcp_listening_socket(struct tcp_sock_opt_t* sock_opts);
 int sio_new_tcp_connection(struct tcp_sock_opt_t* sock_opts);
+int sio_tcp_epoll_server(struct tcp_epoll_srv_t* srv_opts);
 
 
 #if TLS

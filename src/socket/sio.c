@@ -716,7 +716,10 @@ static void accept_pending_connections
 static inline void handle_epoll_event
 (int ep_fdset, int srv_sock, struct epoll_event* event,
 struct tcp_sock_opt_t* cli_sock_opts)
-{
+{//
+//	if (srv_opts->on_bytes_available)
+//		srv_opts->on_bytes_available(events[i].data.fd);
+
 	if (check_event_err(event->events)) {
 		fprintf(stderr, "epoll error\n");
 		sio_close(event->data.fd);
@@ -727,24 +730,29 @@ struct tcp_sock_opt_t* cli_sock_opts)
 	}
 }
 
-
-int sio_tcp_epoll_server
-(int srv_sock, int epoll_max_events, struct tcp_sock_opt_t* cli_sock_opts)
+int sio_tcp_epoll_server(struct tcp_epoll_srv_t* srv_opts)
 {
 	int ep_fdset, r;
+	int max_ev, lfd;
 	struct epoll_event* events;
 	struct tcp_sock_opt_t* co;
 	struct epoll_event ee;
 
-	if (!cli_sock_opts)
+	if (!srv_opts)
 		return -1;
 
-	co = cli_sock_opts;
+	if (srv_opts->listen_fd < 0)
+		return -1;
 
-	if (!epoll_max_events)
-		epoll_max_events = 512;
+	max_ev = srv_opts->max_epoll_events;
 
-	events = calloc(epoll_max_events, sizeof(struct epoll_event));
+	if (max_ev <= 0)
+		max_ev = 512;
+
+	co = &srv_opts->client_socket_options;
+	lfd = srv_opts->listen_fd;
+
+	events = calloc(max_ev, sizeof(struct epoll_event));
 	if (!events) {
 		perror("calloc");
 		return -1;
@@ -758,10 +766,10 @@ int sio_tcp_epoll_server
 	}
 	ee = (struct epoll_event) {
 		.events		= EPOLLIN | EPOLLET,
-		.data.fd	= srv_sock,
+		.data.fd	= lfd,
 	};
 
-	r = epoll_ctl(ep_fdset, EPOLL_CTL_ADD, srv_sock, &ee);
+	r = epoll_ctl(ep_fdset, EPOLL_CTL_ADD, lfd, &ee);
 	if (r < 0) {
 		perror("epoll_ctl");
 		free(events);
@@ -770,19 +778,20 @@ int sio_tcp_epoll_server
 
 	for (;;) {
 		int n, i;
-		n = epoll_wait(ep_fdset, events, epoll_max_events, -1);
+		n = epoll_wait(ep_fdset, events, max_ev, -1);
 		for (i = 0; i < n; i++) {
-			handle_epoll_event(ep_fdset, srv_sock, &events[i], co);
+			handle_epoll_event(ep_fdset, lfd, &events[i], co);
 			#if 0
 			if (check_event_err(events[i].events)) {
 				fprintf(stderr, "epoll error\n");
-				close(events[i].data.fd);
+				sio_close(events[i].data.fd);
 				continue;
-			} else if (events[i].data.fd == srv_sock) {
-				accept_pending_connections(listen_fd, ep_fdset);
+			} else if (events[i].data.fd == lfd) {
+				accept_pending_connections(lfd, ep_fdset);
 				continue;
 			} else {
-				//process_client_fd(events[i].data.fd);
+				if (srv_opts->on_bytes_available)
+					on_bytes_available(events[i].data.fd);
 				continue;
 			}
 			#endif
