@@ -52,12 +52,6 @@ int main(int argc, char* argv[], char* envp[])
 	proc_fork_slaves(slave_pid, 4, &slaveproc, &slave_args);
 
 #if 0
-	for (int i = 0; i < 4; ++i) {
-		printf("slave pid[%d]: %u\n", i, slave_pid[i]);
-	}
-#endif
-
-#if 0
 	for (;;) {
 		usleep(1000000);
 	}
