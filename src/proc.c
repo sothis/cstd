@@ -81,3 +81,37 @@ int proc_fork_and_wait(proc_t* args, int redirect)
 	/* never happens */
 	return 0;
 }
+
+int proc_fork_slaves(pid_t cpid[], int nslaves, slave_proc_t proc, void* data)
+{
+	pid_t r;
+	pid_t child_pid;
+	pid_t child_pgid;
+
+	for (int i = 0; i < nslaves; ++i) {
+		r = fork();
+		if (r < 0) {
+			pdie("fork()");
+		}
+		if (r == 0) {
+			/* child process */
+			child_pgid = setsid();
+			if (child_pgid < 0) {
+				pdie("setsid()");
+			}
+			child_pid = getpid();
+			umask(0);
+			return proc(child_pid, child_pgid, data);
+		}
+		if (r > 0) {
+			/* parent process, track child pid here */
+			if (cpid)
+				cpid[i] = r;
+			continue;
+		}
+	}
+
+	/* wait for child processes with wait()/waitpid() here? */
+
+	return 0;
+}
