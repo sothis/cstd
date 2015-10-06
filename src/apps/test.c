@@ -17,8 +17,7 @@ int slaveproc(pid_t pid, pid_t pgid, void* data)
 	if (!slave_args)
 		return -1;
 
-	printf("slave here. pid %d, pgid %d. listen_fd %d\n", pid, pgid,
-		slave_args->listen_fd);
+	info("slave [%d]: listen_fd %d", pid, slave_args->listen_fd);
 	for (;;) {
 		usleep(1000000);
 		//printf("[slave %u]: tic\n", pid);
@@ -28,8 +27,10 @@ int slaveproc(pid_t pid, pid_t pgid, void* data)
 
 int main(int argc, char* argv[], char* envp[])
 {
-	pid_t slave_pid[4];
-
+	pid_t slave_pids[4];
+	int pipes[4];
+	int nslaves = 4;
+	int r;
 	int listen_fd;
 
 	tcp_sock_opt_t sopt = {
@@ -49,7 +50,7 @@ int main(int argc, char* argv[], char* envp[])
 		.listen_fd = listen_fd,
 	};
 
-	proc_fork_slaves(slave_pid, 4, &slaveproc, &slave_args);
+//	proc_fork_slaves(slave_pids, pipes, &nslaves, &slaveproc, &slave_args);
 
 #if 0
 	for (;;) {
@@ -59,14 +60,10 @@ int main(int argc, char* argv[], char* envp[])
 	getchar();
 #endif
 
-	for (int i = 0; i < 4; ++i) {
-		kill(slave_pid[i], SIGTERM);
-	}
+//	r = proc_terminate_slaves(slave_pids, nslaves);
 
-	if (waitpid(-1, 0, 0) < 0)
-		perror("waitpid");
 
-	printf("finished.\n");
+	printf("finished: %d.\n", r);
 
 	return 0;
 }

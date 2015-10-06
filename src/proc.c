@@ -82,36 +82,103 @@ int proc_fork_and_wait(proc_t* args, int redirect)
 	return 0;
 }
 
-int proc_fork_slaves(pid_t cpid[], int nslaves, slave_proc_t proc, void* data)
+static inline int get_online_cpu_count(void)
 {
-	pid_t r;
+	int ncpus;
+
+	if ((ncpus = sysconf(_SC_NPROCESSORS_ONLN)) == -1)
+		ncpus = 1;
+
+	return ncpus;
+}
+
+slave_t* slaves = 0;
+
+static inline slave_t* add_new_slave(slave_proc_t proc, void* data)
+{
+	slave_t* new_slave;
+
+	new_slave = calloc(1, sizeof(struct slave_t));
+	if (!new_slave)
+		return 0;
+
+	new_slave->param.proc = proc;
+	new_slave->param.data = data;
+
+	new_slave->next = slaves;
+	slaves = new_slave;
+
+	return new_slave;
+}
+
+int proc_fork_slaves(pid_t spid[], int* nslaves, slave_proc_t proc, void* data)
+{
+	pid_t fpid;
 	pid_t child_pid;
 	pid_t child_pgid;
+	int r = 0, c = 0;
+	int cmdpipe[2];
 
-	for (int i = 0; i < nslaves; ++i) {
-		r = fork();
-		if (r < 0) {
-			pdie("fork()");
+	if (!spid || !proc || !nslaves)
+		return -1;
+
+	if (!*nslaves)
+		*nslaves = get_online_cpu_count();
+
+	for (int i = 0; i < *nslaves; ++i) {
+		/* read side for slave process : cmdpipe[0] */
+		/* write side for master process : cmdpipe[1] */
+		pipe(cmdpipe);
+		fpid = fork();
+		if (fpid < 0) {
+			err("fork(): %s", strerror(errno));
+			r++;
+			spid[i] = -1;
 		}
-		if (r == 0) {
+		if (fpid == 0) {
 			/* child process */
 			child_pgid = setsid();
 			if (child_pgid < 0) {
-				pdie("setsid()");
+				/* end child process */
+				err("setsid(): %s", strerror(errno));
+				return -1;
 			}
 			child_pid = getpid();
 			umask(0);
 			return proc(child_pid, child_pgid, data);
 		}
-		if (r > 0) {
-			/* parent process, track child pid here */
-			if (cpid)
-				cpid[i] = r;
-			continue;
+		if (fpid > 0) {
+			/* parent process */
+			c++;
+			spid[i] = fpid;
 		}
 	}
 
-	/* wait for child processes with wait()/waitpid() here? */
+	if (r)
+		r = -1;
 
-	return 0;
+	info("proc_fork_slaves(): forked %d slave processes", c);
+
+	return r;
+}
+
+int proc_terminate_slaves(pid_t spid[], int nslaves)
+{
+	int r = 0;
+
+	for (int i = 0; i < nslaves; ++i) {
+		if (spid[i] < 0)
+			continue;
+		if (kill(spid[i], SIGTERM)) {
+			err("kill(): %s", strerror(errno));
+			r = -1;
+		}
+	}
+
+	if (waitpid(-1, 0, 0) < 0) {
+		err("waitpid(): %s", strerror(errno));
+		r = -1;
+	}
+
+	return r;
 }

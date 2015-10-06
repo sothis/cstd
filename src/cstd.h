@@ -109,9 +109,21 @@ extern int proc_fork_and_wait(proc_t* args, int redirect);
 
 typedef int (*slave_proc_t)(pid_t pid, pid_t pgid, void* data);
 
-int proc_fork_slaves(pid_t cpid[], int nslaves, slave_proc_t proc, void* data);
+typedef struct slave_param_t {
+	slave_proc_t	proc;
+	void*		data;
+} slave_param_t;
 
+typedef struct slave_t {
+	slave_param_t	param;
+	pid_t		slave_pid;
+	pid_t		slave_pgid;
+	int		cmdpipe[2];
+	struct slave_t*	next;
+} slave_t;
 
+int proc_fork_slaves(pid_t spid[], int* nslaves, slave_proc_t proc, void* data);
+int proc_terminate_slaves(pid_t spid[], int nslaves);
 
 extern int fs_delete_deep(const char* directory);
 
