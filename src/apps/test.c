@@ -30,7 +30,7 @@ int main(int argc, char* argv[], char* envp[])
 	pid_t slave_pids[4];
 	int pipes[4];
 	int nslaves = 4;
-	int r;
+	int r = 0;
 	int listen_fd;
 
 	tcp_sock_opt_t sopt = {

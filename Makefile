@@ -1,10 +1,13 @@
 PROJECT_NAME	:= cstd
 
+export PATH := /usr/local/musl/bin:$(PATH)
+
 VERSION		:= $(shell ./version)
 UNAMEEXISTS	:= $(shell uname > /dev/null 2>&1; echo $$?)
 PWDEXISTS	:= $(shell pwd > /dev/null 2>&1; echo $$?)
 GCCEXISTS	:= $(shell gcc --version > /dev/null 2>&1; echo $$?)
-CLANGEXISTS	:= $(shell clang --version > /dev/null 2>&1; echo $$?)
+MUSLEXISTS	:= $(shell musl-gcc --version > /dev/null 2>&1; echo $$?)
+#CLANGEXISTS	:= $(shell clang --version > /dev/null 2>&1; echo $$?)
 #ICCEXISTS	:= $(shell icc --version > /dev/null 2>&1; echo $$?)
 GITEXISTS	:= $(shell git --version > /dev/null 2>&1; echo $$?)
 TAREXISTS	:= $(shell tar --version > /dev/null 2>&1; echo $$?)
@@ -43,6 +46,9 @@ ifeq ($(CLANGEXISTS), 0)
 endif
 ifeq ($(GCCEXISTS), 0)
 	HAVE_GCC	:= Yes
+endif
+ifeq ($(MUSLEXISTS), 0)
+	HAVE_MUSLGCC	:= Yes
 endif
 ifeq ($(ICCEXISTS), 0)
 	HAVE_ICC	:= Yes
@@ -289,6 +295,15 @@ ifeq ($(TOOLCHAIN), gcc)
 		LD	:= $(CROSS)g++
 	endif
 endif
+ifeq ($(TOOLCHAIN), muslgcc)
+	CC		:= musl-gcc -static
+	CXX		:= g++
+	ifeq ($(CXX_SRC),)
+		LD	:= musl-gcc -static
+	else
+		LD	:= g++
+	endif
+endif
 ifeq ($(TOOLCHAIN), clang)
 	CC		:= clang
 	CXX		:= clang++
@@ -351,6 +366,9 @@ clean:
 all-recursive:
 ifdef HAVE_GCC
 	$(MAKE) $(VERB) -C . TOOLCHAIN=gcc final-all-recursive
+endif
+ifdef HAVE_MUSLGCC
+	$(MAKE) $(VERB) -C . TOOLCHAIN=muslgcc final-all-recursive
 endif
 ifdef HAVE_CLANG
 	$(MAKE) $(VERB) -C . TOOLCHAIN=clang final-all-recursive
