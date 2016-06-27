@@ -151,6 +151,7 @@ SRC_TEST	+= ./src/kfile/kfile_update.c
 SRC_TEST	+= ./src/kfile/kfile_read.c
 SRC_TEST	+= ./src/kfile/kfile_close.c
 SRC_TEST	+= ./src/kfile/kfile_version.c
+SRC_TEST	+= ./src/kfile/kfile_fs_layout.c
 SRC_TEST	+= ./src/kfile/fs_layouts/layout_uuid_uint64.c
 
 SRC_CLIENT	+= ./src/apps/client.c

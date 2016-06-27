@@ -98,7 +98,7 @@ static void uuid_to_path
 	return;
 }
 
-int uuid_create_file(uint64_t uuid, mode_t mode)
+static int uuid_create_file(uint64_t uuid, mode_t mode)
 {
 	int r = -1;
 	char path[20];
@@ -117,7 +117,7 @@ out:
 	return r;
 }
 
-int uuid_open_file_ro(uint64_t uuid)
+static int uuid_open_file_ro(uint64_t uuid)
 {
 	int r = -1;
 	char path[20];
@@ -150,7 +150,14 @@ out:
 	return r;
 }
 
-int uuid_close_file(int fd)
+static int uuid_close_file(int fd)
 {
 	return file_sync_and_close(fd);
 }
+
+
+kfile_fsl_start(UUID_UINT64, "64 bit UUID tree layout")
+	.create_file	= &uuid_create_file,
+	.open_file_ro	= &uuid_open_file_ro,
+	.close_file	= &uuid_close_file,
+kfile_fsl_end

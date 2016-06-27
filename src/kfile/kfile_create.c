@@ -110,11 +110,6 @@ static inline int check_create_opts(kfile_create_opts_t* opts)
 	if ((!opts->layout) || (opts->layout >= KFILE_LAYOUT_MAX))
 		return -1;
 
-	/* only support KFILE_LAYOUT_UUID_UINT64 at the moment until
-	 * layout abstraction code is complete */
-	if (opts->layout != KFILE_LAYOUT_UUID_UINT64)
-		return -1;
-
 	/* requested version not supported */
 	if (opts->version >= KFILE_VERSION_MAX)
 		return -1;
@@ -218,45 +213,41 @@ kfile_write_fd_t kfile_create(kfile_create_opts_t* opts)
 
 	_kfile_init_algorithms_with_opts(kf, opts);
 
-#if 0
-	xuuid_to_path(opts->uuid, 0, &kf->path, &kf->filename);
-	if (mkdirp(kf->path))
-		pdie("KFILE mkdirp() for uuid " PRIu64 "\n", opts->uuid);
+	kf->layout = opts->layout;
+	kf->fs_layout = kfile_get_fsl_by_id(kf->layout);
+	if (!kf->fs_layout)
+		pdie("KFILE filesystem layout implementation not found");
 
-	kf->fd = file_create_rw_with_hidden_tmp(kf->filename, kf->path,
-		opts->file_mode);
-	if (kf->fd < 0)
-		pdie("KFILE error creating file '%s' in directory '%s'",
-			kf->filename, kf->path);
-#endif
-	kf->fd = uuid_create_file(opts->uuid, opts->file_mode);
+	kf->fd = kf->fs_layout->create_file(opts->uuid, opts->file_mode);
 	if (kf->fd < 0)
 		pdie("KFILE error creating file for uuid %lu\n", opts->uuid);
 
 	if (file_set_userdata(kf->fd, kf))
 		die("KFILE file_set_userdata()");
 
-	if (xwrite(kf->fd, &kf->header.preamble, sizeof(kfile_preamble_t)))
+	if (_kf_write_whole(kf->fd, &kf->header.preamble,
+		sizeof(kfile_preamble_t)))
 		pdie("KFILE can't write file header");
 
-	if (xwrite(kf->fd, &kf->header.dyndata,
+	if (_kf_write_whole(kf->fd, &kf->header.dyndata,
 		sizeof(kfile_dynamic_data_header_t)))
 		pdie("KFILE can't write file header");
 
-	if (xwrite(kf->fd, &kf->header.control, sizeof(kfile_control_header_t)))
+	if (_kf_write_whole(kf->fd, &kf->header.control,
+		sizeof(kfile_control_header_t)))
 		pdie("KFILE can't write file header");
 
-	if (xwrite(kf->fd, &kf->header.kdf_header.kdf_salt_bytes, 1))
+	if (_kf_write_whole(kf->fd, &kf->header.kdf_header.kdf_salt_bytes, 1))
 		pdie("KFILE can't write file header");
 
-	if (xwrite(kf->fd, kf->header.kdf_header.kdf_salt,
+	if (_kf_write_whole(kf->fd, kf->header.kdf_header.kdf_salt,
 		kf->header.kdf_header.kdf_salt_bytes+1))
 		pdie("KFILE can't write file header");
 
-	if (xwrite(kf->fd, &kf->header.iv_header.iv_bytes, 1))
+	if (_kf_write_whole(kf->fd, &kf->header.iv_header.iv_bytes, 1))
 		pdie("KFILE can't write file header");
 
-	if (xwrite(kf->fd, kf->header.iv_header.iv,
+	if (_kf_write_whole(kf->fd, kf->header.iv_header.iv,
 		kf->header.iv_header.iv_bytes+1))
 		pdie("KFILE can't write file header");
 

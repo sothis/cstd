@@ -73,7 +73,7 @@ int main(int argc, char* argv[], char* envp[])
 		pdie("kfile_open()");
 	kfile_read(rfd, rdata, 4096);
 	printf("resource: '%s'\n" , kfile_get_resource_name(rfd));
-	//printf("content: '%s'\n", rdata);
+	printf("content: '%s'\n", rdata);
 	kfile_close(rfd);
 #endif
 //	printf("s: '%lu'\n", sizeof(kfile_kdf_header_t));

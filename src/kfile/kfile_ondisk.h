@@ -52,7 +52,7 @@ typedef struct kfile_iv_header_t {
  *	kfile_cipher_mac_t
  *
  *
- * kfile_cipher_data_t consists of following:
+ * kfile_cipher_data_t is the encrypted data of following:
  *	<header_mac[kfile_control_header_t.digest_bytes+1]>
  * 		(calculated over kfile_control_header_t,
  * 		kfile_kdf_header_t and kfile_iv_header_t)

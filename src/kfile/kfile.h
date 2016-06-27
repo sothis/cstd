@@ -22,6 +22,7 @@ typedef struct kfile_t {
 	int		fd;
 	kfile_header_t	header;
 
+	const struct kfile_fsl_desc* fs_layout;
 	k_hash_t*	hash_plaintext;
 	k_hash_t*	hash_ciphertext;
 	k_sc_t*		scipher;
