@@ -11,7 +11,7 @@
 #include <inttypes.h>
 #include <sys/stat.h>
 
-
+#if 0
 int mkdirp(const char* path)
 {
 	char* p, *tok;
@@ -45,6 +45,7 @@ out:
 	free(p);
 	return r;
 }
+#endif
 
 const char* kfile_get_resource_name(kfile_read_fd_t fd)
 {

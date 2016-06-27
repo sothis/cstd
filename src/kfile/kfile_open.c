@@ -269,11 +269,6 @@ kfile_read_fd_t kfile_open(kfile_open_opts_t* opts)
 	if ((!opts->layout) || (opts->layout >= KFILE_LAYOUT_MAX))
 		return -1;
 
-	/* only support KFILE_LAYOUT_UUID_UINT64 at the moment until
-	 * layout abstraction code is complete */
-	if (opts->layout != KFILE_LAYOUT_UUID_UINT64)
-		return -1;
-
 	if (!opts->iobuf_size)
 		die("KFILE I/O buffer size mustn't be zero");
 
@@ -283,8 +278,12 @@ kfile_read_fd_t kfile_open(kfile_open_opts_t* opts)
 	kf = xcalloc(1, sizeof(kfile_t));
 	kf->iobuf_size = opts->iobuf_size;
 	kf->iobuf = xmalloc(opts->iobuf_size);
+	kf->layout = opts->layout;
+	kf->fs_layout = kfile_get_fsl_by_id(kf->layout);
+	if (!kf->fs_layout)
+		pdie("KFILE filesystem layout implementation not found");
 
-	kf->fd = uuid_open_file_ro(opts->uuid);
+	kf->fd = kf->fs_layout->open_file_ro(opts->uuid);
 	if (kf->fd < 0)
 		pdie("KFILE uuid_open_file_ro()");
 

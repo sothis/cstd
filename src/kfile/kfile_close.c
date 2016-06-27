@@ -6,6 +6,7 @@
 int kfile_close(kfile_fd_t fd)
 {
 	kfile_t* kf;
+	int r = 0;
 
 	if (fd < 0)
 		return -1;
@@ -13,6 +14,8 @@ int kfile_close(kfile_fd_t fd)
 	kf = file_get_userdata(fd);
 	if (!kf)
 		die("KFILE file_get_userdata()");
+
+	r = kf->fs_layout->close_file(fd);
 
 	if (kf->header.kdf_header.kdf_salt)
 		free(kf->header.kdf_header.kdf_salt);
@@ -38,7 +41,7 @@ int kfile_close(kfile_fd_t fd)
 		free(kf->cipherdigest);
 	free(kf);
 
-	return uuid_close_file(fd);
+	return r;
 }
 
 void kfile_write_digests_and_close(kfile_write_fd_t fd)
@@ -56,12 +59,12 @@ void kfile_write_digests_and_close(kfile_write_fd_t fd)
 
 	k_hash_final(kf->hash_ciphertext, kf->cipherdigest);
 
-	if (xwrite(kf->fd, kf->cipherdigest, kf->digestbytes))
+	if (_kf_write_whole(kf->fd, kf->cipherdigest, kf->digestbytes))
 		pdie("KFILE unable to write checksum");
 
 	if (lseek(kf->fd, 10, SEEK_SET) < 0)
 		pdie("KFILE unable to set file pointer");
-	if (xwrite(kf->fd, &kf->ciphersize, sizeof(kf->ciphersize)))
+	if (_kf_write_whole(kf->fd, &kf->ciphersize, sizeof(kf->ciphersize)))
 		pdie("KFILE unable to write filesize");
 
 	kfile_close(fd);
