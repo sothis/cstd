@@ -1,40 +1,41 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<ufwb version="1.9">
-    <grammar name="kfile" start="id:2" author="Janos Laube" email="janos.dev@gmail.com">
-        <structure name="kfile_t" id="2" encoding="UTF-8" endian="little" signed="no">
-            <structure name="kfile_preamble_t" id="3">
-                <string name="magic" mustmatch="yes" id="4" fillcolor="FFFF00" type="zero-terminated">
+<ufwb version="1.13">
+    <grammar name="kfile" start="id:1" author="Janos Laube" email="janos.dev@gmail.com">
+        <structure name="kfile_t" id="1" encoding="UTF-8" endian="little" signed="no">
+            <structure name="kfile_preamble_t" id="2">
+                <string name="magic" mustmatch="yes" id="3" fillcolor="FFFF00" type="zero-terminated">
                     <fixedvalues>
                         <fixedvalue name="magic" value="KFILE"/>
                     </fixedvalues>
                 </string>
-                <string name="version" id="5" fillcolor="D8FFAE" type="zero-terminated"/>
+                <string name="version" id="4" fillcolor="D8FFAE" type="zero-terminated"/>
             </structure>
-            <structure name="kfile_dynamic_data_header_t" id="32">
-                <number name="cipher_data_bytes" id="34" fillcolor="55FFFF" type="integer" length="8"/>
+            <structure name="kfile_dynamic_data_header_t" id="6">
+                <number name="plain_data_bytes" id="33" type="integer" length="8"/>
+                <number name="cipher_data_bytes" id="7" fillcolor="55FFFF" type="integer" length="8"/>
             </structure>
-            <structure name="kfile_control_header_t" id="8" fillcolor="AAFFFF">
-                <number name="hash_function" id="9" fillcolor="AA0000" type="integer" length="1"/>
-                <number name="digest_bytes" id="10" fillcolor="55AAFF" type="integer" length="1"/>
-                <number name="cipher_function" id="11" fillcolor="55007F" type="integer" length="1"/>
-                <number name="cipher_mode" id="12" fillcolor="55FFFF" type="integer" length="1"/>
-                <number name="key_bytes" id="13" fillcolor="AA5500" type="integer" length="1"/>
-                <number name="kdf_function" id="14" fillcolor="AAFFFF" type="integer" length="1"/>
-                <number name="kdf_complexity" id="15" fillcolor="AA00FF" type="integer" length="1"/>
+            <structure name="kfile_control_header_t" id="9" fillcolor="AAFFFF">
+                <number name="hash_function" id="10" fillcolor="AA0000" type="integer" length="1"/>
+                <number name="digest_bytes" id="11" fillcolor="55AAFF" type="integer" length="1"/>
+                <number name="cipher_function" id="12" fillcolor="55007F" type="integer" length="1"/>
+                <number name="cipher_mode" id="13" fillcolor="55FFFF" type="integer" length="1"/>
+                <number name="key_bytes" id="14" fillcolor="AA5500" type="integer" length="1"/>
+                <number name="kdf_function" id="15" fillcolor="AAFFFF" type="integer" length="1"/>
+                <number name="kdf_complexity" id="16" fillcolor="AA00FF" type="integer" length="1"/>
             </structure>
-            <structure name="kfile_kdf_header_t" id="17">
-                <number name="kdf_salt_bytes" id="18" fillcolor="00FF00" type="integer" length="1"/>
-                <binary name="kdf_salt" id="19" fillcolor="00FF7F" length="kdf_salt_bytes+1"/>
+            <structure name="kfile_kdf_header_t" id="18">
+                <number name="kdf_salt_bytes" id="19" fillcolor="00FF00" type="integer" length="1"/>
+                <binary name="kdf_salt" id="20" fillcolor="00FF7F" length="kdf_salt_bytes+1"/>
             </structure>
-            <structure name="kfile_iv_header_t" id="21">
-                <number name="iv_bytes" id="22" fillcolor="00FF00" type="integer" length="1"/>
-                <binary name="iv" id="23" fillcolor="00FF7F" length="iv_bytes+1"/>
+            <structure name="kfile_iv_header_t" id="22">
+                <number name="iv_bytes" id="23" fillcolor="00FF00" type="integer" length="1"/>
+                <binary name="iv" id="24" fillcolor="00FF7F" length="iv_bytes+1"/>
             </structure>
-            <structure name="kfile_cipher_data_t" id="25">
-                <binary name="cipher_data" id="26" fillcolor="55007F" length="cipher_data_bytes"/>
+            <structure name="kfile_cipher_data_t" id="26">
+                <binary name="cipher_data" id="27" fillcolor="55007F" length="cipher_data_bytes"/>
             </structure>
-            <structure name="kfile_cipher_mac_t" id="28">
-                <binary name="cipher_mac" id="29" fillcolor="00FF7F" length="digest_bytes+1"/>
+            <structure name="kfile_cipher_mac_t" id="29">
+                <binary name="cipher_mac" id="30" fillcolor="00FF7F" length="digest_bytes+1"/>
             </structure>
         </structure>
     </grammar>
