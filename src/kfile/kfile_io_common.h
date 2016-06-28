@@ -31,6 +31,18 @@ static inline ssize_t _kf_fill_io_buf(int fd, unsigned char* buf, size_t nbyte)
 	return total;
 }
 
+static inline int _kf_read_whole(int fd, void* buf, uint16_t nbyte)
+{
+	int32_t total = 0;
+
+	total = _kf_fill_io_buf(fd, buf, nbyte);
+
+	if (total != nbyte)
+		return -1;
+
+	return 0;
+}
+
 static inline ssize_t _kf_store_io_buf(int fd, unsigned char* buf, size_t nbyte)
 {
 	ssize_t nwritten = 0;

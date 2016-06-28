@@ -1,5 +1,4 @@
 #include "kfile.h"
-#include "xio.h"
 #include "dir.h"
 #include <string.h>
 #include <stdio.h>
@@ -31,7 +30,7 @@ static int _check_cipherdigest(kfile_t* kf)
 	}
 
 	k_hash_final(kf->hash_ciphertext, cipherdigest_chk);
-	if (xread(kf->fd, kf->cipherdigest, kf->digestbytes) < 0)
+	if (_kf_read_whole(kf->fd, kf->cipherdigest, kf->digestbytes) < 0)
 		return -1;
 
 	/* put read pointer back to cipher start */
@@ -121,16 +120,14 @@ static int _kfile_read_and_check_file_header(kfile_t* kf, kfile_open_opts_t* opt
 
 	memset(headerdigest_chk, 0, KFILE_SIZE_MAX);
 
-#if 0
 	if (kf->filesize < sizeof(kfile_header_t)) {
 		crit("KFILE filesize lower than expected");
 		return -1;
 	}
-#endif
 
-	if (xread(kf->fd, &kf->header.preamble, sizeof(kfile_preamble_t))
-		!= sizeof(kfile_preamble_t))
-		pdie("xread()");
+	if (_kf_read_whole(kf->fd, &kf->header.preamble,
+	sizeof(kfile_preamble_t)))
+		pdie("_kf_read_whole()");
 
 	if (strlen(kf->header.preamble.magic)+1 != sizeof(KFILE_MAGIC))
 		return -1;
@@ -146,41 +143,38 @@ static int _kfile_read_and_check_file_header(kfile_t* kf, kfile_open_opts_t* opt
 		{ crit("KFILE unable to determine file version"); return -1; }
 	kf->version = ver;
 
-	if (xread(kf->fd, &kf->header.dyndata,
-	sizeof(kfile_dynamic_data_header_t))
-	!= sizeof(kfile_dynamic_data_header_t))
-		pdie("xread()");
+	if (_kf_read_whole(kf->fd, &kf->header.dyndata,
+	sizeof(kfile_dynamic_data_header_t)))
+		pdie("_kf_read_whole()");
 
 	/* Test here if kf->dyndata.cipher_data_bytes fit into filesize! */
 
-	if (xread(kf->fd, &kf->header.control, sizeof(kfile_control_header_t))
-		!= sizeof(kfile_control_header_t))
-		pdie("xread()");
+	if (_kf_read_whole(kf->fd, &kf->header.control,
+	sizeof(kfile_control_header_t)))
+		pdie("_kf_read_whole()");
 
-	if (xread(kf->fd, &kf->header.kdf_header.kdf_salt_bytes, 1) != 1)
-		pdie("xread()");
+	if (_kf_read_whole(kf->fd, &kf->header.kdf_header.kdf_salt_bytes, 1))
+		pdie("_kf_read_whole()");
 
 	kf->header.kdf_header.kdf_salt = calloc(1,
 		kf->header.kdf_header.kdf_salt_bytes+1);
 	if (!kf->header.kdf_header.kdf_salt)
 		pdie("calloc");
 
-	if (xread(kf->fd, kf->header.kdf_header.kdf_salt,
-		kf->header.kdf_header.kdf_salt_bytes+1) !=
-		kf->header.kdf_header.kdf_salt_bytes+1)
-		pdie("xread()");
+	if (_kf_read_whole(kf->fd, kf->header.kdf_header.kdf_salt,
+		kf->header.kdf_header.kdf_salt_bytes+1))
+		pdie("_kf_read_whole()");
 
-	if (xread(kf->fd, &kf->header.iv_header.iv_bytes, 1) != 1)
-		pdie("xread()");
+	if (_kf_read_whole(kf->fd, &kf->header.iv_header.iv_bytes, 1))
+		pdie("_kf_read_whole()");
 
 	kf->header.iv_header.iv = calloc(1, kf->header.iv_header.iv_bytes+1);
 	if (!kf->header.iv_header.iv)
 		pdie("calloc");
 
-	if (xread(kf->fd, kf->header.iv_header.iv,
-		kf->header.iv_header.iv_bytes+1) !=
-		kf->header.iv_header.iv_bytes+1)
-		pdie("xread()");
+	if (_kf_read_whole(kf->fd, kf->header.iv_header.iv,
+	kf->header.iv_header.iv_bytes+1))
+		pdie("_kf_read_whole()");
 
 	kf->cipherstart = sizeof(kfile_preamble_t) +
 		sizeof(kfile_dynamic_data_header_t) +
@@ -209,14 +203,6 @@ static int _kfile_read_and_check_file_header(kfile_t* kf, kfile_open_opts_t* opt
 		{ crit("KFILE kdf_function mustn't be zero"); return -1; }
 
 	_kfile_init_algorithms_with_file(kf, opts);
-
-
-#if 0
-	if (kf->filesize < (sizeof(kfile_header_t) + (3*kf->digestbytes) + 1)) {
-		crit("KFILE filesize lower than expected");
-		return -1;
-	}
-#endif
 
 	_kf_calculate_header_digest(kf);
 
