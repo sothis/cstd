@@ -1,5 +1,6 @@
 PROJECT_NAME	:= cstd
 
+
 export PATH := /usr/local/musl/bin:$(PATH)
 
 VERSION		:= $(shell ./version)
