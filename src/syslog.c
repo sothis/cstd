@@ -1,5 +1,11 @@
 #include "cstd.h"
 
+__constructor(_syslog_init)
+{
+	openlog(0, LOG_PID | LOG_NDELAY | LOG_CONS | LOG_PERROR, LOG_DAEMON);
+	//setlogmask(LOG_UPTO(LOG_DEBUG)); /* LOG_UPTO(LOG_DEBUG) is default */
+}
+
 void veprintf(int loglevel, char* format, va_list valist)
 {
 	vsyslog(loglevel, format, valist);

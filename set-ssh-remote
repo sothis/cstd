@@ -1,0 +1,8 @@
+#!/bin/bash
+
+cd sdtl && ./set-ssh-remote && cd ..
+cd libk && ./set-ssh-remote && cd ..
+
+git remote set-url origin ssh://git@github.com/sothis/cstd.git
+git checkout master
+

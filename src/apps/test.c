@@ -4,7 +4,9 @@
 #include <stdio.h>
 #include <string.h>
 
-int cstd_main(int argc, char* argv[], char* envp[])
+#include <socket/sio.h>
+
+int main(int argc, char* argv[], char* envp[])
 {
 #if 0
 	int fd0, fd1, fd2, fd3;
@@ -75,6 +77,26 @@ int cstd_main(int argc, char* argv[], char* envp[])
 	kfile_close(rfd);
 #endif
 //	printf("s: '%lu'\n", sizeof(kfile_kdf_header_t));
+	return 0;
 #endif
+
+
+	int sock;
+
+	if (argc != 2)
+		return -1;
+
+	tcp_sock_opt_t sopt = {
+		.interface	= argv[1],
+		.port		= 1337,
+		.non_blocking	= 0,
+		.reuse_address	= 1,
+		.keep_alive	= 1,
+	};
+
+	sock = sio_new_tcp_listening_socket(&sopt);
+	printf("sock: %d\n", sock);
+	getchar();
+
 	return 0;
 }

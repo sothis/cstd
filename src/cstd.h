@@ -79,7 +79,7 @@ extern char* str_prepend(char* string1, const char* string2);
 char* path_resolve(char* path, const char* subtree);
 char* path_resolve_const(const char* path);
 
-typedef struct proc {
+typedef struct proc_t {
 	/* if redirect in proc_fork_and_wait() is set, use these
 	 * filedescriptors as source/destination of standard I/O
 	 * channels, set them to STDIN_FILENO, STDOUT_FILENO and
@@ -106,6 +106,24 @@ typedef struct proc {
 } proc_t;
 
 extern int proc_fork_and_wait(proc_t* args, int redirect);
+
+typedef int (*slave_proc_t)(pid_t pid, pid_t pgid, void* data);
+
+typedef struct slave_param_t {
+	slave_proc_t	proc;
+	void*		data;
+} slave_param_t;
+
+typedef struct slave_t {
+	slave_param_t	param;
+	pid_t		slave_pid;
+	pid_t		slave_pgid;
+	int		cmdpipe[2];
+	struct slave_t*	next;
+} slave_t;
+
+int proc_fork_slaves(pid_t spid[], int* nslaves, slave_proc_t proc, void* data);
+int proc_terminate_slaves(pid_t spid[], int nslaves);
 
 extern int fs_delete_deep(const char* directory);
 
