@@ -29,18 +29,18 @@ int main(int argc, char* argv[], char* envp[])
 #if 1
 
 #if 1
-	unsigned char sdata[4096];
+	unsigned char sdata[35191];
 	kfile_write_fd_t wfd;
 	kfile_create_opts_t kfcopts = {
 		.uuid			= 18446744073709551615ul,
 		.file_mode		= 0400,
 		.layout			= KFILE_LAYOUT_UUID_UINT64,
 		.version		= KFILE_VERSION_0_1,
-		.hash_function		= HASHSUM_SKEIN_512,
-		.digest_bytes		= 64,
-		.cipher_function	= BLK_CIPHER_AES,
+		.hash_function		= HASHSUM_SKEIN_1024,
+		.digest_bytes		= 128,
+		.cipher_function	= BLK_CIPHER_THREEFISH_1024,
 		.cipher_mode		= BLK_CIPHER_MODE_CTR,
-		.key_bytes		= 32,
+		.key_bytes		= 128,
 		.kdf_function		= KDF_SKEIN_1024,
 		.kdf_complexity		= 23,
 		.iobuf_size		= 65536,
@@ -48,8 +48,8 @@ int main(int argc, char* argv[], char* envp[])
 		.low_entropy_pass	= { "test1234" }
 	};
 
-	memset(sdata, 'z', 4096);
-	sdata[4095] = 0;
+	memset(sdata, '-', 35191);
+	sdata[35190] = 0;
 	wfd = kfile_create(&kfcopts);
 	if (wfd < 0)
 		pdie("kfile_create()");
@@ -58,7 +58,7 @@ int main(int argc, char* argv[], char* envp[])
 #endif
 
 #if 1
-	unsigned char rdata[4096];
+	unsigned char rdata[35191];
 	kfile_read_fd_t rfd;
 	kfile_open_opts_t kfoopts = {
 		.layout			= KFILE_LAYOUT_UUID_UINT64,
@@ -71,7 +71,7 @@ int main(int argc, char* argv[], char* envp[])
 	rfd = kfile_open(&kfoopts);
 	if (rfd < 0)
 		pdie("kfile_open()");
-	kfile_read(rfd, rdata, 4096);
+	kfile_read(rfd, rdata, 35191);
 	printf("resource: '%s'\n" , kfile_get_resource_name(rfd));
 	printf("content: '%s'\n", rdata);
 	kfile_close(rfd);

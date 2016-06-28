@@ -287,7 +287,7 @@ kfile_read_fd_t kfile_open(kfile_open_opts_t* opts)
 	kf->filesize = st.st_size;
 
 	if (_kfile_read_and_check_file_header(kf, opts))
-		die("KFILE corrupt or invalid file header");
+		die("KFILE corrupt file header or wrong password");
 
 	return kf->fd;
 }
