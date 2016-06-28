@@ -26,7 +26,7 @@ int main(int argc, char* argv[], char* envp[])
 
 	file_sync_and_close_all();
 #endif
-#if 0
+#if 1
 
 #if 1
 	unsigned char sdata[4096];
@@ -77,7 +77,9 @@ int main(int argc, char* argv[], char* envp[])
 	kfile_close(rfd);
 #endif
 //	printf("s: '%lu'\n", sizeof(kfile_kdf_header_t));
+	return 0;
 #endif
+
 
 	int sock;
 
