@@ -31,6 +31,7 @@ typedef struct kfile_t {
 	kfile_version_t	version;
 	kfile_layout_t	layout;
 	size_t		filesize;
+	uint64_t	plainsize;
 	uint64_t	ciphersize;
 	uint64_t	cipherstart;
 	size_t		noncebytes;

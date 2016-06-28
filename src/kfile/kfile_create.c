@@ -253,13 +253,15 @@ kfile_write_fd_t kfile_create(kfile_create_opts_t* opts)
 
 	_kf_calculate_header_digest(kf);
 
-	if (kfile_update(kf->fd, kf->headerdigest, kf->digestbytes) < 0)
+	if (_kfile_update_internal(kf->fd, kf->headerdigest,
+	kf->digestbytes) < 0)
 		pdie("KFILE kfile_update(kf->headerdigest)");
 
-	if (kfile_update(kf->fd, &kf->resourcename_len, 1) < 0)
+	if (_kfile_update_internal(kf->fd, &kf->resourcename_len, 1) < 0)
 		pdie("KFILE kfile_update(kf->resourcename_len)");
 
-	if (kfile_update(kf->fd, opts->resource_name, kf->resourcename_len) < 0)
+	if (_kfile_update_internal(kf->fd, opts->resource_name,
+	kf->resourcename_len) < 0)
 		pdie("KFILE kfile_update(opts->resourcename)");
 
 	return kf->fd;

@@ -54,7 +54,7 @@ void kfile_write_digests_and_close(kfile_write_fd_t fd)
 
 	k_hash_final(kf->hash_plaintext, kf->datadigest);
 
-	if (kfile_update(kf->fd, kf->datadigest, kf->digestbytes) < 0)
+	if (_kfile_update_internal(kf->fd, kf->datadigest, kf->digestbytes) < 0)
 		pdie("KFILE kfile_update()");
 
 	k_hash_final(kf->hash_ciphertext, kf->cipherdigest);
@@ -62,10 +62,14 @@ void kfile_write_digests_and_close(kfile_write_fd_t fd)
 	if (_kf_write_whole(kf->fd, kf->cipherdigest, kf->digestbytes))
 		pdie("KFILE unable to write checksum");
 
+	if (lseek(kf->fd, 10, SEEK_SET) < 0)
+		pdie("KFILE unable to set file pointer");
+	if (_kf_write_whole(kf->fd, &kf->plainsize, sizeof(kf->plainsize)))
+		pdie("KFILE unable to write plain size");
 	if (lseek(kf->fd, 18, SEEK_SET) < 0)
 		pdie("KFILE unable to set file pointer");
 	if (_kf_write_whole(kf->fd, &kf->ciphersize, sizeof(kf->ciphersize)))
-		pdie("KFILE unable to write filesize");
+		pdie("KFILE unable to write cipher size");
 
 	kfile_close(fd);
 }

@@ -9,7 +9,7 @@ static inline void _encrypt_io_buf(kfile_t* kf, size_t nbyte)
 	k_hash_update(kf->hash_ciphertext, kf->iobuf, nbyte);
 }
 
-int kfile_update(kfile_write_fd_t fd, const void *buf, size_t nbyte)
+ssize_t kfile_update(kfile_write_fd_t fd, const void *buf, size_t nbyte)
 {
 	kfile_t* kf;
 	ssize_t nwritten = 0;
@@ -39,6 +39,26 @@ int kfile_update(kfile_write_fd_t fd, const void *buf, size_t nbyte)
 		total += nwritten;
 	}
 	kf->ciphersize += total;
+	kf->plainsize += total;
+
+	return total;
+}
+
+ssize_t _kfile_update_internal(kfile_write_fd_t fd, const void *buf, size_t nbyte)
+{
+	kfile_t* kf;
+	ssize_t total = 0;
+
+	kf = file_get_userdata(fd);
+	if (!kf)
+		die("KFILE file_get_userdata()");
+
+	total = kfile_update(fd, buf, nbyte);
+	if (total != nbyte)
+		return -1;
+
+	/* ugly solution, fix this */
+	kf->plainsize -= total;
 
 	return total;
 }
