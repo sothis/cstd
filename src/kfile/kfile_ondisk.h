@@ -18,6 +18,7 @@ typedef struct kfile_preamble_t {
 } __attribute__((packed)) kfile_preamble_t;
 
 typedef struct kfile_dynamic_data_header_t {
+	uint64_t	plain_data_bytes;
 	uint64_t	cipher_data_bytes;
 } __attribute__((packed)) kfile_dynamic_data_header_t;
 

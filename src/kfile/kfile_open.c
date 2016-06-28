@@ -148,6 +148,8 @@ static int _kfile_read_and_check_file_header(kfile_t* kf, kfile_open_opts_t* opt
 		pdie("_kf_read_whole()");
 
 	/* Test here if kf->dyndata.cipher_data_bytes fit into filesize! */
+	printf("cipher size: %lu bytes\n", kf->header.dyndata.cipher_data_bytes);
+	printf("plain size : %lu bytes\n", kf->header.dyndata.plain_data_bytes);
 
 	if (_kf_read_whole(kf->fd, &kf->header.control,
 	sizeof(kfile_control_header_t)))

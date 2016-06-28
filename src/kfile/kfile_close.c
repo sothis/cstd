@@ -62,7 +62,7 @@ void kfile_write_digests_and_close(kfile_write_fd_t fd)
 	if (_kf_write_whole(kf->fd, kf->cipherdigest, kf->digestbytes))
 		pdie("KFILE unable to write checksum");
 
-	if (lseek(kf->fd, 10, SEEK_SET) < 0)
+	if (lseek(kf->fd, 18, SEEK_SET) < 0)
 		pdie("KFILE unable to set file pointer");
 	if (_kf_write_whole(kf->fd, &kf->ciphersize, sizeof(kf->ciphersize)))
 		pdie("KFILE unable to write filesize");
