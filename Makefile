@@ -7,7 +7,7 @@ VERSION		:= $(shell ./version)
 UNAMEEXISTS	:= $(shell uname > /dev/null 2>&1; echo $$?)
 PWDEXISTS	:= $(shell pwd > /dev/null 2>&1; echo $$?)
 GCCEXISTS	:= $(shell gcc --version > /dev/null 2>&1; echo $$?)
-MUSLEXISTS	:= $(shell musl-gcc --version > /dev/null 2>&1; echo $$?)
+#MUSLEXISTS	:= $(shell musl-gcc --version > /dev/null 2>&1; echo $$?)
 #CLANGEXISTS	:= $(shell clang --version > /dev/null 2>&1; echo $$?)
 #ICCEXISTS	:= $(shell icc --version > /dev/null 2>&1; echo $$?)
 GITEXISTS	:= $(shell git --version > /dev/null 2>&1; echo $$?)
@@ -227,7 +227,7 @@ CFLAGS		+= -O0
 endif
 
 ifdef RELEASE
-CFLAGS		+= -O3
+CFLAGS		+= -O2
 ifdef PLAT_WINNT
 CFLAGS		+= -flto -fwhole-program
 else
