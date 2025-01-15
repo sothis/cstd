@@ -1,0 +1,6 @@
+[submodule "libk"]
+	path = libk
+	url = https://github.com/sothis/libk.git
+[submodule "sdtl"]
+	path = sdtl
+	url = https://github.com/sothis/sdtl.git
